@@ -7,6 +7,31 @@
     <groupId>com.gooddata</groupId>
     <artifactId>gooddata-http-client</artifactId>
     <version>0.8.0-SNAPSHOT</version>
+    <developers>
+        <developer>
+            <name>Adam Stulpa</name>
+            <email>adam.stulpa@gooddata.com</email>
+            <organizationUrl>http://www.gooddata.com/</organizationUrl>
+        </developer>
+        <developer>
+            <name>Jan Dudek</name>
+            <email>jan.dudek@gooddata.com</email>
+            <organizationUrl>http://www.gooddata.com/</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git@github.com:gooddata/gooddata-http-client.git</connection>
+        <developerConnection>scm:git:git@github.com:gooddata/gooddata-http-client.git</developerConnection>
+        <url>https://github.com/gooddata/gooddata-http-client</url>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>BSD License</name>
+            <url>http://opensource.org/licenses/BSD-3-Clause</url>
+        </license>
+    </licenses>
 
     <dependencyManagement>
         <dependencies>
@@ -102,6 +127,7 @@
     <properties>
         <jadler.version>0.9.5</jadler.version>
         <slf4j.version>1.7.2</slf4j.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
 </project>
