@@ -1,39 +1,79 @@
 gooddata-http-client
 ====================
 
-Contains HTTP client with ability to handle GoodData authentication.
+GoodData HTTP client is an extension of [Jakarta HTTP Commons Client](http://hc.apache.org/httpcomponents-client-4.2.x/index.html).
+This specialized client transparently handles [GoodData authentication](http://developer.gooddata.com/article/authentication-via-api)
+so you can focus on writing logic on top of [GoodData API](https://developer.gooddata.com/api).
+
+## Design
+
+```com.gooddata.http.client.GoodDataHttpClient``` central class implements [org.apache.http.client.HttpClient interface](http://hc.apache.org/httpcomponents-client-4.2.x/httpclient/apidocs/org/apache/http/client/HttpClient.html)
+It allows seamless switch for existing code base currently using ```org.apache.http.client.HttpClient```. Business logic encapsulating
+access to [GoodData API](https://developer.gooddata.com/api) should use ```org.apache.http.client.HttpClient``` interface
+and keep ```com.gooddata.http.client.GoodDataHttpClient``` inside a factory class. ```com.gooddata.http.client.GoodDataHttpClient``` uses underlying ```org.apache.http.client.HttpClient```.  A HTTP client
+instance can be passed via the constructor.
 
 ## Usage
 
-### Authentication using login
+Authentication to GoodData is supported by [credentials](#credentials) or [Super Secure Token](#sst).
 
-    // create HTTP client with your settings
-    HttpClient httpClient = ...
+If your project is managed by Maven you can add GoodData HTTP client as a new dependency otherwise you have to
+[download binary](#http://search.maven.org/#browse%7C458832843) and add manually.
 
-    // create login strategy, which will obtain SST via login
-    SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(new DefaultHttpClient(),
-         new HttpHost("server.com", 123),"user@domain.com", "my secret");
+*Maven*
 
-    // wrap your HTTP client into GoodData HTTP client
-    HttpClient client = new GoodDataHttpClient(httpClient, sstStrategy);
+```XML
+<dependency>
+  <groupId>com.gooddata</groupId>
+  <artifactId>gooddata-http-client</artifactId>
+  <version>${gdc.http.client.version}</version>
+<dependency>
+```
 
-    // use GoodData HTTP client
-    HttpGet getProject = new HttpGet("/gdc/projects");
-    getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
-    HttpResponse getProjectResponse = client.execute(httpHost, getProject);
+### <a name="credentials"/>Authentication using credentials</a>
 
-### Authentication using super-secure token (SST)
+```Java
+import com.gooddata.http.client.*
+import java.io.IOException;
+import org.apache.http.*;
 
-    // create HTTP client
-    HttpClient httpClient = ...
+HttpHost hostGoodData = new HttpHost("secure.gooddata.com", 443, "https");
 
-    // create login strategy (you must somehow obtain SST)
-    SSTRetrievalStrategy sstStrategy = new SimpleSSTRetrievalStrategy("my super-secure token");
+// create login strategy, which will obtain SST via credentials
+SSTRetrievalStrategy sstStrategy = 
+     new LoginSSTRetrievalStrategy(new DefaultHttpClient(),hostGoodData login, password);
 
-    // wrap your HTTP client into GoodData HTTP client
-    HttpClient client = new GoodDataHttpClient(httpClient, sstStrategy);
+HttpClient client = new GoodDataHttpClient(new DefaultHttpClient(), sstStrategy);
 
-    // use GoodData HTTP client
-    HttpGet getProject = new HttpGet("/gdc/projects");
-    getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
-    HttpResponse getProjectResponse = client.execute(httpHost, getProject);
+// use HTTP client with transparent GoodData authentication
+HttpGet getProject = new HttpGet("/gdc/projects");
+getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
+HttpResponse getProjectResponse = client.execute(hostGoodData, getProject);
+
+System.out.println(EntityUtils.toString(getProjectResponse.getEntity()));
+```
+
+### <a name="sst"/>Authentication using super-secure token (SST)</a>
+
+```Java
+import com.gooddata.http.client.*
+import java.io.IOException;
+import org.apache.http.*;
+
+// create HTTP client
+HttpClient httpClient = new DefaultHttpClient();
+
+HttpHost hostGoodData = new HttpHost("secure.gooddata.com", 443, "https");
+
+// create login strategy (you must somehow obtain SST)
+SSTRetrievalStrategy sstStrategy = new SimpleSSTRetrievalStrategy("my super-secure token");
+
+// wrap your HTTP client into GoodData HTTP client
+HttpClient client = new GoodDataHttpClient(httpClient, sstStrategy);
+
+// use GoodData HTTP client
+HttpGet getProject = new HttpGet("/gdc/projects");
+getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
+HttpResponse getProjectResponse = client.execute(hostGoodData, getProject);
+
+System.out.println(EntityUtils.toString(getProjectResponse.getEntity()));
