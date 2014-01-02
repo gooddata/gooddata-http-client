@@ -23,7 +23,4 @@ public class GoodDataAuthException extends RuntimeException {
         super(cause);
     }
 
-    public GoodDataAuthException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
 }
