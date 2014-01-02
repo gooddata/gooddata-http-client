@@ -5,7 +5,8 @@
 package com.gooddata.http.client;
 
 import org.apache.http.HttpHost;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.client.HttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -21,11 +22,11 @@ public class SimpleSSTRetrievalStrategyTest {
 
     private SimpleSSTRetrievalStrategy sstStrategy;
 
-    private DefaultHttpClient httpClient;
+    private HttpClient httpClient;
 
     @Before
     public void setUp() {
-        httpClient = new DefaultHttpClient();
+        httpClient = HttpClientBuilder.create().build();
         host = new HttpHost("server.com", 666);
     }
 

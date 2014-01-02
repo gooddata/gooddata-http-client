@@ -12,16 +12,15 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.auth.AUTH;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
@@ -45,7 +44,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * HttpClient httpClient = ...
  *
  * // create login strategy, which wil obtain SST via login
- * SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(new DefaultHttpClient(),
+ * SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(HttpClientBuilder.create().build(),
  *          new HttpHost("server.com", 123),"user@domain.com", "my secret");
  *
  * // wrap your HTTP client into GoodData HTTP client
@@ -84,7 +83,7 @@ public class GoodDataHttpClient implements HttpClient {
     public static final String LOCK_AUTH = "gooddata.lock.auth";
 
     private enum GoodDataChallengeType {
-        SST, TT, UNKNOWN;
+        SST, TT, UNKNOWN
     }
 
     private final Log log = LogFactory.getLog(getClass());
@@ -105,7 +104,7 @@ public class GoodDataHttpClient implements HttpClient {
         this.sstStrategy = sstStrategy;
         context = new BasicHttpContext();
         final CookieStore cookieStore = new BasicCookieStore();
-        context.setAttribute(ClientContext.COOKIE_STORE, cookieStore);
+        context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
 
         //this lock is used to ensure that no threads will try to send requests while authentication is performed
         context.setAttribute(LOCK_RW, new ReentrantReadWriteLock());
@@ -119,7 +118,7 @@ public class GoodDataHttpClient implements HttpClient {
      * @param sstStrategy super-secure token (SST) obtaining strategy
      */
     public GoodDataHttpClient(final SSTRetrievalStrategy sstStrategy) {
-        this(new DefaultHttpClient(), sstStrategy);
+        this(HttpClientBuilder.create().build(), sstStrategy);
     }
 
     private GoodDataChallengeType identifyGoodDataChallenge(final HttpResponse response) {
@@ -198,7 +197,6 @@ public class GoodDataHttpClient implements HttpClient {
      */
     private boolean refreshTt(final HttpHost httpHost) {
         log.debug("Obtaining TT");
-        final boolean result;
         final HttpGet getTT = new HttpGet(TOKEN_URL);
         try {
             final HttpResponse response = httpClient.execute(httpHost, getTT, context);
@@ -229,7 +227,7 @@ public class GoodDataHttpClient implements HttpClient {
     }
 
     @Override
-    public HttpResponse execute(HttpHost target, HttpRequest request) throws IOException, ClientProtocolException {
+    public HttpResponse execute(HttpHost target, HttpRequest request) throws IOException {
         return execute(target, request, context);
     }
 
@@ -270,7 +268,7 @@ public class GoodDataHttpClient implements HttpClient {
     }
 
     @Override
-    public HttpResponse execute(HttpHost target, HttpRequest request, HttpContext context) throws IOException, ClientProtocolException {
+    public HttpResponse execute(HttpHost target, HttpRequest request, HttpContext context) throws IOException {
         if (context == null) {
             context = this.context;
         }

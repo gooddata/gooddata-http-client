@@ -11,7 +11,7 @@ import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.entity.ContentType;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -89,8 +89,8 @@ public class GoodDataHttpClientIntegrationTest {
                 .withBody("{\"parameters\":[],\"component\":\"Account::Login::AuthShare\",\"message\":\"Bad Login or Password!\"}")
                 .withContentType("application/json");
 
-        final DefaultHttpClient httpClient = new DefaultHttpClient();
-        final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(new DefaultHttpClient(), jadlerHost, jadlerLogin, jadlerPassword);
+        final HttpClient httpClient = HttpClientBuilder.create().build();
+        final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(HttpClientBuilder.create().build(), jadlerHost, jadlerLogin, jadlerPassword);
         final HttpClient client = new GoodDataHttpClient(httpClient, sstStrategy);
 
         performGet(client, jadlerHost, GDC_PROJECTS_URL, HttpStatus.SC_OK);
@@ -143,8 +143,8 @@ public class GoodDataHttpClientIntegrationTest {
                 .withHeader("Set-Cookie", "GDCAuthSST=cookieSst; path=/gdc/account; secure; HttpOnly")
                 .withHeader("Set-Cookie", "GDCAuthTT=; path=/gdc; expires=Sat, 18-May-2013 09:10:00 GMT; secure; HttpOnly");
 
-        final DefaultHttpClient httpClient = new DefaultHttpClient();
-        final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(new DefaultHttpClient(), jadlerHost, jadlerLogin, jadlerPassword);
+        final HttpClient httpClient = HttpClientBuilder.create().build();
+        final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(HttpClientBuilder.create().build(), jadlerHost, jadlerLogin, jadlerPassword);
         final HttpClient client = new GoodDataHttpClient(httpClient, sstStrategy);
 
         performGet(client, jadlerHost, GDC_PROJECTS_URL, HttpStatus.SC_OK);
@@ -161,8 +161,8 @@ public class GoodDataHttpClientIntegrationTest {
                 .withBody("{\"about\":{\"summary\":\"Project Resources\",\"category\":\"Projects\",\"links\":[]}}")
                 .withEncoding(Charset.forName("UTF-8"))
                 .withContentType("application/json; charset=UTF-8");
-        final DefaultHttpClient httpClient = new DefaultHttpClient();
-        final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(new DefaultHttpClient(), jadlerHost, jadlerLogin, jadlerPassword);
+        final HttpClient httpClient = HttpClientBuilder.create().build();
+        final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(HttpClientBuilder.create().build(), jadlerHost, jadlerLogin, jadlerPassword);
         final HttpClient client = new GoodDataHttpClient(httpClient, sstStrategy);
 
         performGet(client, jadlerHost, GDC_PROJECTS_URL, HttpStatus.SC_OK);
@@ -176,8 +176,8 @@ public class GoodDataHttpClientIntegrationTest {
     @Ignore
     @Test
     public void gdcLogin() throws IOException {
-        final DefaultHttpClient httpClient = new DefaultHttpClient();
-        final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(new DefaultHttpClient(), httpHost, login, password);
+        final HttpClient httpClient = HttpClientBuilder.create().build();
+        final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(HttpClientBuilder.create().build(), httpHost, login, password);
         final HttpClient client = new GoodDataHttpClient(httpClient, sstStrategy);
 
         performGet(client, httpHost, GDC_PROJECTS_URL, HttpStatus.SC_OK);
@@ -191,7 +191,7 @@ public class GoodDataHttpClientIntegrationTest {
     @Ignore
     @Test
     public void gdcSstSimple() throws IOException {
-        final DefaultHttpClient httpClient = new DefaultHttpClient();
+        final HttpClient httpClient = HttpClientBuilder.create().build();
         final SSTRetrievalStrategy sstStrategy = new SimpleSSTRetrievalStrategy(sst);
         final HttpClient client = new GoodDataHttpClient(httpClient, sstStrategy);
 
