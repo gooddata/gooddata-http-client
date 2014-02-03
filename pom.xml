@@ -20,11 +20,13 @@
         <developer>
             <name>Adam Stulpa</name>
             <email>adam.stulpa@gooddata.com</email>
+            <organization>GoodData Corporation</organization>
             <organizationUrl>http://www.gooddata.com/</organizationUrl>
         </developer>
         <developer>
             <name>Jan Dudek</name>
             <email>jan.dudek@gooddata.com</email>
+            <organization>GoodData Corporation</organization>
             <organizationUrl>http://www.gooddata.com/</organizationUrl>
         </developer>
     </developers>
