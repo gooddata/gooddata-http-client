@@ -5,7 +5,7 @@
 package com.gooddata.http.client;
 
 import org.apache.http.client.CookieStore;
-import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.protocol.BasicHttpContext;
@@ -33,7 +33,7 @@ public class CookieUtilsTest {
     public void setUp() {
         context = new BasicHttpContext();
         cookieStore = new BasicCookieStore();
-        context.setAttribute(ClientContext.COOKIE_STORE, cookieStore);
+        context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
     }
 
     @Test

@@ -41,9 +41,9 @@ HttpHost hostGoodData = new HttpHost("secure.gooddata.com", 443, "https");
 
 // create login strategy, which will obtain SST via credentials
 SSTRetrievalStrategy sstStrategy = 
-     new LoginSSTRetrievalStrategy(new DefaultHttpClient(),hostGoodData login, password);
+     new LoginSSTRetrievalStrategy(HttpClientBuilder.create().build(),hostGoodData login, password);
 
-HttpClient client = new GoodDataHttpClient(new DefaultHttpClient(), sstStrategy);
+HttpClient client = new GoodDataHttpClient(HttpClientBuilder.create().build(), sstStrategy);
 
 // use HTTP client with transparent GoodData authentication
 HttpGet getProject = new HttpGet("/gdc/projects");
@@ -61,7 +61,7 @@ import java.io.IOException;
 import org.apache.http.*;
 
 // create HTTP client
-HttpClient httpClient = new DefaultHttpClient();
+HttpClient httpClient = HttpClientBuilder.create().build();
 
 HttpHost hostGoodData = new HttpHost("secure.gooddata.com", 443, "https");
 

@@ -5,7 +5,7 @@
 package com.gooddata.http.client;
 
 import org.apache.http.client.CookieStore;
-import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.protocol.HttpContext;
 
@@ -38,7 +38,7 @@ public class CookieUtils {
      */
     static void replaceSst(final String sst, final HttpContext context, final String domain) {
         notNull(context, "Context cannot be null.");
-        final CookieStore cookieStore = (CookieStore) context.getAttribute(ClientContext.COOKIE_STORE);
+        final CookieStore cookieStore = (CookieStore) context.getAttribute(HttpClientContext.COOKIE_STORE);
         replaceSst(sst, cookieStore, domain);
     }
 
