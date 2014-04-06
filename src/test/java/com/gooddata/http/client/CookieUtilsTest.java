@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2013, GoodData(R) Corporation. All rights reserved.
+ * Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
  * This program is made available under the terms of the BSD License.
  */
 package com.gooddata.http.client;
@@ -13,6 +13,7 @@ import org.apache.http.protocol.HttpContext;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -57,6 +58,28 @@ public class CookieUtilsTest {
     @Test
     public void replaceSst_nullDomain() {
         CookieUtils.replaceSst(SST, context, null);
+    }
+
+    @Test
+    public void extractTokenFromBody_validSst() throws IOException {
+        String tt = CookieUtils.extractTokenFromBody("{" +
+                "\"userLogin\" : {" +
+                "   \"profile\" : \"/gdc/account/profile/1\"," +
+                "   \"token\" : \"nbWW7peskrKbSMYj\"," +
+                "   \"state\" : \"/gdc/account/login/1\"" +
+                "}" +
+            "}", "userLogin");
+        assertEquals("nbWW7peskrKbSMYj", tt);
+    }
+
+    @Test
+    public void extractTokenFromBody_validTt() throws IOException {
+        String tt = CookieUtils.extractTokenFromBody("{" +
+                "\"userToken\" : {" +
+                "   \"token\" : \"nbWW7peskrKbSMYj\"" +
+                "}" +
+            "}", "userToken");
+        assertEquals("nbWW7peskrKbSMYj", tt);
     }
 
     @Test(expected = IllegalArgumentException.class)
