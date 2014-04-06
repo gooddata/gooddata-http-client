@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2013, GoodData(R) Corporation. All rights reserved.
+ * Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
  * This program is made available under the terms of the BSD License.
  */
 package com.gooddata.http.client;
