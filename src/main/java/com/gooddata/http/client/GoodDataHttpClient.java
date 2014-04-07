@@ -113,8 +113,16 @@ public class GoodDataHttpClient implements HttpClient {
 
     private final VerificationLevel verificationLevel;
 
-    private String sst, tt;
+    // current SST (or null if not yet obtained)
+    private String sst;
+    // TT to be set into the header (or null if cookie-based auth is used, or TT not yet obtained)
+    private String tt;
 
+    /**
+     * Constructs the client, with {@link VerificationLevel#COOKIE} verification level.
+     * @param httpClient Http client
+     * @param sstStrategy super-secure token (SST) obtaining strategy
+     */
     public GoodDataHttpClient(final HttpClient httpClient, final SSTRetrievalStrategy sstStrategy) {
         this(httpClient, sstStrategy, VerificationLevel.COOKIE);
     }
@@ -123,6 +131,7 @@ public class GoodDataHttpClient implements HttpClient {
      * Construct object.
      * @param httpClient Http client
      * @param sstStrategy super-secure token (SST) obtaining strategy
+     * @param verificationLevel verification level
      */
     public GoodDataHttpClient(final HttpClient httpClient, final SSTRetrievalStrategy sstStrategy, final VerificationLevel verificationLevel) {
         notNull(httpClient);
