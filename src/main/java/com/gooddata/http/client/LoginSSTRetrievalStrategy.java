@@ -65,8 +65,18 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategyWithVl {
     }
 
     @Override
+    public HttpHost getTokenHost() {
+        return httpHost;
+    }
+
+    @Override
+    public VerificationLevel getDefaultVerificationLevel() {
+        return VerificationLevel.COOKIE;
+    }
+
+    @Override
     public String obtainSst() {
-        return obtainSst(VerificationLevel.COOKIE);
+        return obtainSst(getDefaultVerificationLevel());
     }
 
     @Override

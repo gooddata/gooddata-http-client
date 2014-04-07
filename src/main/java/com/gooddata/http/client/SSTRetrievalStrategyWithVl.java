@@ -4,6 +4,8 @@
  */
 package com.gooddata.http.client;
 
+import org.apache.http.HttpHost;
+
 /**
  * Interface for class which encapsulates SST retrieval with support for verification levels.
  */
@@ -15,4 +17,17 @@ public interface SSTRetrievalStrategyWithVl extends SSTRetrievalStrategy {
      * @return SST
      */
     String obtainSst(VerificationLevel verificationLevel);
+
+    /**
+     * Returns host to be used to retrieve TT tokens.
+     * @return http host
+     */
+    HttpHost getTokenHost();
+
+    /**
+     * Returns default verification level to be used with this strategy if no verification level is specified explicitly
+     * by the user.
+     * @return verification level to be used by default
+     */
+    VerificationLevel getDefaultVerificationLevel();
 }

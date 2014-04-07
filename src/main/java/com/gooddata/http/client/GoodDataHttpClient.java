@@ -119,12 +119,17 @@ public class GoodDataHttpClient implements HttpClient {
     private String tt;
 
     /**
-     * Constructs the client, with {@link VerificationLevel#COOKIE} verification level.
+     * Constructs the client, with default verification level. If {@code sstStrategy} argument contains an instance of
+     * {@link SSTRetrievalStrategyWithVl} class, the default verification level is determined by calling {@link com.gooddata.http.client.SSTRetrievalStrategyWithVl#getDefaultVerificationLevel()}
+     * otherwise the default verification level is set to {@link VerificationLevel#COOKIE}.
      * @param httpClient Http client
      * @param sstStrategy super-secure token (SST) obtaining strategy
      */
     public GoodDataHttpClient(final HttpClient httpClient, final SSTRetrievalStrategy sstStrategy) {
-        this(httpClient, sstStrategy, VerificationLevel.COOKIE);
+        this(httpClient, sstStrategy, (sstStrategy instanceof SSTRetrievalStrategyWithVl) ?
+                ((SSTRetrievalStrategyWithVl) sstStrategy).getDefaultVerificationLevel() :
+                VerificationLevel.COOKIE
+        );
     }
 
     /**
@@ -204,6 +209,7 @@ public class GoodDataHttpClient implements HttpClient {
                     writeLock.lock();
                 }
                 boolean doSST = true;
+
                 try {
                     if (challenge == GoodDataChallengeType.TT) {
                         if (this.refreshTt(httpHost)) {
@@ -239,7 +245,7 @@ public class GoodDataHttpClient implements HttpClient {
 
     /**
      * Refresh temporary token.
-     * @param httpHost HTTP host
+     * @param httpHost HTTP host to be used if no token host is provided by the SST retrieval strategy ({@link com.gooddata.http.client.SSTRetrievalStrategyWithVl#getTokenHost()} method)
      * @return
      * <ul>
      *     <li><code>true</code> TT refresh successful</li>
@@ -249,13 +255,17 @@ public class GoodDataHttpClient implements HttpClient {
      */
     private boolean refreshTt(final HttpHost httpHost) {
         log.debug("Obtaining TT");
+        final HttpHost tokenHost = (sstStrategy instanceof SSTRetrievalStrategyWithVl) ?
+                ((SSTRetrievalStrategyWithVl) sstStrategy).getTokenHost() :
+                httpHost;
+
         final HttpGet getTT = new HttpGet(TOKEN_URL);
         if (verificationLevel.getLevel() > 0) {
             // need to include the token in the header
             getTT.addHeader(SST_HEADER, sst);
         }
         try {
-            final HttpResponse response = httpClient.execute(httpHost, getTT, context);
+            final HttpResponse response = httpClient.execute(tokenHost, getTT, context);
             final int status = response.getStatusLine().getStatusCode();
             switch (status) {
                 case HttpStatus.SC_OK:
