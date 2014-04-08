@@ -152,8 +152,8 @@ public class GoodDataHttpClient implements HttpClient {
      */
     public GoodDataHttpClient(final HttpClient httpClient, final SSTRetrievalStrategy sstStrategy) {
         this(httpClient, sstStrategy, null, null, null, VerificationLevel.COOKIE, null);
-        notNull(httpClient);
-        notNull(sstStrategy);
+        notNull(httpClient, "httpClient cannot be null");
+        notNull(sstStrategy, "sstStrategy cannot be null");
     }
 
     /**
@@ -207,7 +207,7 @@ public class GoodDataHttpClient implements HttpClient {
         this.tokenHost = tokenHost;
         this.context = new BasicHttpContext();
 
-        if (verificationLevel.getLevel() < 2) {
+        if (verificationLevel.isCookieBased()) {
             // we need cookies -> initialize cookie store
             final CookieStore cookieStore = new BasicCookieStore();
             context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
@@ -300,7 +300,7 @@ public class GoodDataHttpClient implements HttpClient {
                             refreshSst(realTokenHost);
                         }
 
-                        if (verificationLevel.getLevel() < 2) {
+                        if (verificationLevel.isCookieBased()) {
                             CookieUtils.replaceSst(sst, context, realTokenHost.getHostName());
                         }
 
@@ -335,7 +335,7 @@ public class GoodDataHttpClient implements HttpClient {
     protected boolean refreshTt(final HttpHost realTokenHost) {
         log.debug("Obtaining TT");
         final HttpGet getTT = new HttpGet(TOKEN_URL);
-        if (verificationLevel.getLevel() > 0) {
+        if (verificationLevel.isHeaderBased()) {
             // need to include the token in the header
             getTT.addHeader(SST_HEADER, sst);
         }
@@ -344,7 +344,7 @@ public class GoodDataHttpClient implements HttpClient {
             final int status = response.getStatusLine().getStatusCode();
             switch (status) {
                 case HttpStatus.SC_OK:
-                    if (verificationLevel.getLevel() > 0) {
+                    if (verificationLevel.isHeaderBased()) {
                         tt = extractTokenFromBody(response, TT_ENTITY);
                     }
                     return true;
@@ -373,7 +373,7 @@ public class GoodDataHttpClient implements HttpClient {
         log.debug("Obtaining STT");
         final HttpPost postLogin = new HttpPost(LOGIN_URL);
         try {
-            final HttpEntity requestEntity = new StringEntity(createLoginJson(username, password, verificationLevel.getLevel()), ContentType.APPLICATION_JSON);
+            final HttpEntity requestEntity = new StringEntity(createLoginJson(username, password, verificationLevel), ContentType.APPLICATION_JSON);
             postLogin.setEntity(requestEntity);
             postLogin.setHeader("Accept", ContentType.APPLICATION_JSON.toString());
             final HttpResponse response = httpClient.execute(httpHost, postLogin);
@@ -381,7 +381,7 @@ public class GoodDataHttpClient implements HttpClient {
             if (status != HttpStatus.SC_OK) {
                 throw new GoodDataAuthException("Unable to login: " + status);
             }
-            final String sst = extractSST(response, httpHost, verificationLevel.getLevel());
+            final String sst = extractSST(response, httpHost, verificationLevel);
             if (sst == null) {
                 throw new GoodDataAuthException("Unable to login. Missing SST Set-Cookie header.");
             }
@@ -393,16 +393,16 @@ public class GoodDataHttpClient implements HttpClient {
         }
     }
 
-    private static String createLoginJson(final String login, final String password, final int verificationLevel) {
+    private static String createLoginJson(final String login, final String password, final VerificationLevel verificationLevel) {
         return "{\"postUserLogin\":{\"login\":\"" + StringEscapeUtils.escapeJavaScript(login) +
                 "\",\"password\":\"" + StringEscapeUtils.escapeJavaScript(password) + "\",\"remember\":0" +
-                (verificationLevel > 0 ? ",\"verify_level\":" + verificationLevel : "") + "}}";
+                (verificationLevel.getLevel() != 0 ? ",\"verify_level\":" + verificationLevel.getLevel() : "") + "}}";
     }
 
-    private static String extractSST(final HttpResponse response, final HttpHost httpHost, final int verificationLevel) throws IOException {
+    private static String extractSST(final HttpResponse response, final HttpHost httpHost, final VerificationLevel verificationLevel) throws IOException {
         String sst;
 
-        if (verificationLevel > 0) {
+        if (verificationLevel.isHeaderBased()) {
             // SST sent in the response body
             sst = extractTokenFromBody(response, SST_ENTITY);
         } else {
@@ -527,7 +527,7 @@ public class GoodDataHttpClient implements HttpClient {
          * @return this builder
          */
         public Builder<T> httpClient(final HttpClient httpClient) {
-            notNull(httpClient);
+            notNull(httpClient, "httpClient cannot be null");
             this.httpClient = httpClient;
             return this;
         }
@@ -539,8 +539,8 @@ public class GoodDataHttpClient implements HttpClient {
          * @return this builder
          */
         public Builder<T> credentials(final String username, final String password) {
-            notNull(username);
-            notNull(password);
+            notNull(username, "username cannot be null");
+            notNull(password, "password cannot be null");
             this.username = username;
             this.password = password;
             return this;
@@ -552,7 +552,7 @@ public class GoodDataHttpClient implements HttpClient {
          * @return this builder
          */
         public Builder<T> sst(final String sst) {
-            notNull(sst);
+            notNull(sst, "sst cannot be null");
             this.sst = sst;
             return this;
         }
@@ -564,7 +564,7 @@ public class GoodDataHttpClient implements HttpClient {
          * @return this builder
          */
         public Builder<T> verification(VerificationLevel verificationLevel) {
-            notNull(verificationLevel);
+            notNull(verificationLevel, "verificationLevel cannot be null");
             this.verificationLevel = verificationLevel;
             return this;
         }
@@ -575,7 +575,7 @@ public class GoodDataHttpClient implements HttpClient {
          * @return this builder
          */
         public Builder<T> tokenHost(HttpHost tokenHost) {
-            notNull(tokenHost);
+            notNull(tokenHost, "tokenHost cannot be null");
             this.tokenHost = tokenHost;
             return this;
         }

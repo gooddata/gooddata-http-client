@@ -12,6 +12,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -20,6 +21,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 
 import static net.jadler.Jadler.closeJadler;
 import static net.jadler.Jadler.initJadler;
@@ -286,6 +288,68 @@ public class GoodDataHttpClientIntegrationTest {
         final HttpClient client = GoodDataHttpClient.withUsernamePassword(jadlerLogin, jadlerPassword).build();
 
         performGet(client, jadlerHost, REDIRECT_URL, HttpStatus.SC_OK);
+    }
+
+    @Test
+    public void getProjectWithCheckDomainFalse() throws IOException {
+        onRequest()
+                .havingMethodEqualTo("GET")
+                .havingURIEqualTo(GDC_PROJECTS_URL)
+                .havingHeaderEqualTo("Accept", "application/json")
+        .respond()
+                .withStatus(401)
+                .withHeader("WWW-Authenticate", "GoodData realm=\"GoodData API\" cookie=GDCAuthTT")
+                .withBody("<html><head><title>401 Authorization Required</title></head><body><p>This server could not verify that you are authorized to access the document requested.  Either you supplied the wrong credentials (e.g., bad password), or your browser doesn't understand how to supply the credentials required.Please see <a href=\"http://docs.gooddata.apiary.io/#login\">Authenticating to the GoodData API</a> for details.</p></body></html>")
+                .withEncoding(Charset.forName("UTF-8"))
+                .withContentType("application/json; charset=UTF-8");
+
+        onRequest()
+                .havingMethodEqualTo("GET")
+                .havingURIEqualTo(GDC_PROJECTS_URL)
+                .havingHeaderEqualTo("Accept", "application/json")
+                .havingHeaderEqualTo("X-GDC-AuthTT", "cookieTt")
+                .havingHeaderEqualTo("X-GDC-Check-Domain", "false")
+        .respond()
+                .withStatus(200)
+                .withBody("{\"about\":{\"summary\":\"Project Resources\",\"category\":\"Projects\",\"links\":[]}}")
+                .withEncoding(Charset.forName("UTF-8"))
+                .withContentType("application/json; charset=UTF-8");
+
+        onRequest()
+                .havingMethodEqualTo("GET")
+                .havingURIEqualTo(GDC_TOKEN_URL)
+                .havingHeaderEqualTo("X-GDC-Check-Domain", "false")
+        .respond()
+                .withStatus(401)
+                .withHeader("WWW-Authenticate", "GoodData realm=\"GoodData API\" cookie=GDCAuthSST")
+                .withBody("{\"parameters\":[],\"component\":\"Account::Token\",\"message\":\"/gdc/account/login\"}")
+                .withEncoding(Charset.forName("UTF-8"))
+                .withContentType("application/json")
+        .thenRespond()
+                .withStatus(200)
+                .withBody("{ \"userToken\" : { \"token\" : \"cookieTt\" } }")
+                .withHeader("Set-Cookie", "GDCAuthTT=cookieTt; path=/gdc; secure; HttpOnly")
+                .withEncoding(Charset.forName("UTF-8"))
+                .withContentType("application/json");
+
+        onRequest()
+                .havingMethodEqualTo("POST")
+                .havingURIEqualTo(GDC_LOGIN_URL)
+                .havingHeaderEqualTo("Accept", "application/json; charset=UTF-8")
+                .havingHeaderEqualTo("X-GDC-Check-Domain", "false")
+                .havingBodyEqualTo("{\"postUserLogin\":{\"login\":\"user@email.com\",\"password\":\"top secret\",\"remember\":0,\"verify_level\":2}}")
+        .respond()
+                .withStatus(200)
+                .withBody("{\"userLogin\":{\"profile\":\"/gdc/account/profile/asdfasdf45t4ar\",\"token\":\"cookieSst\",\"state\":\"/gdc/account/login/asdfasdf45t4ar\"}}")
+                .withContentType("application/json")
+                .withEncoding(Charset.forName("UTF-8"));
+
+        final HttpClient internalClient = HttpClientBuilder.create().setDefaultHeaders(
+                Arrays.asList(new BasicHeader("X-GDC-Check-Domain", "false"))
+        ).build();
+        final HttpClient client = GoodDataHttpClient.withUsernamePassword(jadlerLogin, jadlerPassword).httpClient(internalClient).build();
+
+        performGet(client, jadlerHost, GDC_PROJECTS_URL, HttpStatus.SC_OK);
     }
 
     @Test
