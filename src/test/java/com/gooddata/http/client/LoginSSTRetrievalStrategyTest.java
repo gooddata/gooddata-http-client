@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2013, GoodData(R) Corporation. All rights reserved.
+ * Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
  * This program is made available under the terms of the BSD License.
  */
 package com.gooddata.http.client;
@@ -30,6 +30,7 @@ import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("deprecation")
 public class LoginSSTRetrievalStrategyTest {
 
     public static final String PASSWORD = "mysecret";
@@ -42,12 +43,10 @@ public class LoginSSTRetrievalStrategyTest {
 
     public StatusLine statusLine;
 
-    private HttpHost host;
-
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        host = new HttpHost("server.com", 123);
+        HttpHost host = new HttpHost("server.com", 123);
         sstStrategy = new LoginSSTRetrievalStrategy(httpClient, host, LOGIN, PASSWORD);
     }
 
@@ -70,7 +69,7 @@ public class LoginSSTRetrievalStrategyTest {
 
         final String postBody = "{\"postUserLogin\":{\"login\":\"" + LOGIN + "\",\"password\":\"" + PASSWORD + "\",\"remember\":0}}";//TODO: JSON assert
         StringWriter writer = new StringWriter();
-        IOUtils.copy(postCaptor.getValue().getEntity().getContent(), writer, "UTF-8");;
+        IOUtils.copy(postCaptor.getValue().getEntity().getContent(), writer, "UTF-8");
 
         assertEquals(postBody, writer.toString());
         assertEquals("/gdc/account/login", postCaptor.getValue().getURI().getPath());

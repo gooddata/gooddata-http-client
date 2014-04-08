@@ -27,8 +27,13 @@ import java.io.IOException;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.only;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+@SuppressWarnings("deprecation")
 public class GoodDataHttpClientTest {
 
     private GoodDataHttpClient goodDataHttpClient;
@@ -160,4 +165,25 @@ public class GoodDataHttpClientTest {
         verify(httpClient, times(3)).execute(eq(host), any(HttpRequest.class), any(HttpContext.class));
     }
 
+    @Test
+    public void extractTokenFromBody_validSst() throws IOException {
+        String tt = GoodDataHttpClient.extractTokenFromBody("{" +
+                "\"userLogin\" : {" +
+                "   \"profile\" : \"/gdc/account/profile/1\"," +
+                "   \"token\" : \"nbWW7peskrKbSMYj\"," +
+                "   \"state\" : \"/gdc/account/login/1\"" +
+                "}" +
+                "}", "userLogin");
+        assertEquals("nbWW7peskrKbSMYj", tt);
+    }
+
+    @Test
+    public void extractTokenFromBody_validTt() throws IOException {
+        String tt = GoodDataHttpClient.extractTokenFromBody("{" +
+                "\"userToken\" : {" +
+                "   \"token\" : \"nbWW7peskrKbSMYj\"" +
+                "}" +
+                "}", "userToken");
+        assertEquals("nbWW7peskrKbSMYj", tt);
+    }
 }
