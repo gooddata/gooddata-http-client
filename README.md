@@ -27,7 +27,7 @@ If your project is managed by Maven you can add GoodData HTTP client as a new de
   <groupId>com.gooddata</groupId>
   <artifactId>gooddata-http-client</artifactId>
   <version>${gdc.http.client.version}</version>
-<dependency>
+</dependency>
 ```
 
 ### <a name="credentials"/>Authentication using credentials</a>
@@ -41,7 +41,7 @@ HttpHost hostGoodData = new HttpHost("secure.gooddata.com", 443, "https");
 
 // create login strategy, which will obtain SST via credentials
 SSTRetrievalStrategy sstStrategy = 
-     new LoginSSTRetrievalStrategy(HttpClientBuilder.create().build(),hostGoodData login, password);
+     new LoginSSTRetrievalStrategy(HttpClientBuilder.create().build(), hostGoodData, login, password);
 
 HttpClient client = new GoodDataHttpClient(HttpClientBuilder.create().build(), sstStrategy);
 
