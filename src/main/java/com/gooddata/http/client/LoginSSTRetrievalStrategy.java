@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2013, GoodData(R) Corporation. All rights reserved.
+ * Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
  * This program is made available under the terms of the BSD License.
  */
 package com.gooddata.http.client;
@@ -31,9 +31,10 @@ import static org.apache.commons.lang.Validate.notNull;
 /**
  * This strategy obtains super-secure token via login and password.
  */
-public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
+public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategyWithVl {
 
     public static final String LOGIN_URL = "/gdc/account/login";
+    public static final String SST_ENTITY = "userLogin";
 
     private final Log log = LogFactory.getLog(getClass());
 
@@ -64,11 +65,26 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
     }
 
     @Override
+    public HttpHost getTokenHost() {
+        return httpHost;
+    }
+
+    @Override
+    public VerificationLevel getDefaultVerificationLevel() {
+        return VerificationLevel.COOKIE;
+    }
+
+    @Override
     public String obtainSst() {
+        return obtainSst(getDefaultVerificationLevel());
+    }
+
+    @Override
+    public String obtainSst(final VerificationLevel verificationLevel) {
         log.debug("Obtaining STT");
         final HttpPost postLogin = new HttpPost(LOGIN_URL);
         try {
-            final HttpEntity requestEntity = new StringEntity(createLoginJson(login, password), ContentType.APPLICATION_JSON);
+            final HttpEntity requestEntity = new StringEntity(createLoginJson(verificationLevel.getLevel()), ContentType.APPLICATION_JSON);
             postLogin.setEntity(requestEntity);
             postLogin.setHeader("Accept", ContentType.APPLICATION_JSON.toString());
             final HttpResponse response = httpClient.execute(httpHost, postLogin);
@@ -76,7 +92,7 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
             if (status != HttpStatus.SC_OK) {
                 throw new GoodDataAuthException("Unable to login: " + status);
             }
-            final String sst = extractSST(response);
+            final String sst = extractSST(response, verificationLevel.getLevel());
             if (sst == null) {
                 throw new GoodDataAuthException("Unable to login. Missing SST Set-Cookie header.");
             }
@@ -90,20 +106,28 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
         }
     }
 
-    private String createLoginJson(final String login, final String password) {
+    private String createLoginJson(final int verificationLevel) {
         return "{\"postUserLogin\":{\"login\":\"" + StringEscapeUtils.escapeJavaScript(login) +
-                "\",\"password\":\"" + StringEscapeUtils.escapeJavaScript(password) + "\",\"remember\":0}}";
+                "\",\"password\":\"" + StringEscapeUtils.escapeJavaScript(password) + "\",\"remember\":0" +
+                (verificationLevel > 0 ? ",\"verify_level\":" + verificationLevel : "") + "}}";
     }
 
-    private String extractSST(final HttpResponse response) throws MalformedCookieException {
+    private String extractSST(final HttpResponse response, final int verificationLevel) throws MalformedCookieException, IOException {
         String sst = null;
-        final CookieSpec cookieSpec = new BestMatchSpec();
-        final CookieOrigin cookieOrigin = new CookieOrigin(httpHost.getHostName(), httpHost.getPort(), "/gdc/account", true);
-        for (Header header : response.getHeaders(SM.SET_COOKIE)) {
-            final List<Cookie> cookies = cookieSpec.parse(header, cookieOrigin);
-            if (cookies.size() > 0 && CookieUtils.SST_COOKIE_NAME.equals(cookies.get(0).getName())) {
-                sst = cookies.get(0).getValue();
-                break;
+
+        if (verificationLevel > 0) {
+            // SST sent in the response body
+            sst = CookieUtils.extractTokenFromBody(response, SST_ENTITY);
+        } else {
+            // SST sent only in the cookie
+            final CookieSpec cookieSpec = new BestMatchSpec();
+            final CookieOrigin cookieOrigin = new CookieOrigin(httpHost.getHostName(), httpHost.getPort(), "/gdc/account", true);
+            for (Header header : response.getHeaders(SM.SET_COOKIE)) {
+                final List<Cookie> cookies = cookieSpec.parse(header, cookieOrigin);
+                if (cookies.size() > 0 && CookieUtils.SST_COOKIE_NAME.equals(cookies.get(0).getName())) {
+                    sst = cookies.get(0).getValue();
+                    break;
+                }
             }
         }
         return sst;
