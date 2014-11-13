@@ -4,6 +4,8 @@
  */
 package com.gooddata.http.client;
 
+import java.io.IOException;
+
 /**
  * Interface for class which encapsulates SST retrival.
  */
@@ -13,6 +15,6 @@ public interface SSTRetrievalStrategy {
      * Sets SST cookie to HTTP client.
      * @return SST
      */
-    String obtainSst();
+    String obtainSst() throws IOException;
 
 }

@@ -64,7 +64,7 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
     }
 
     @Override
-    public String obtainSst() {
+    public String obtainSst() throws IOException {
         log.debug("Obtaining STT");
         final HttpPost postLogin = new HttpPost(LOGIN_URL);
         try {
@@ -81,8 +81,6 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
                 throw new GoodDataAuthException("Unable to login. Missing SST Set-Cookie header.");
             }
             return sst;
-        } catch (IOException e) {
-            throw new GoodDataAuthException("Unable to login: " + e.getMessage(), e);
         } catch (MalformedCookieException e) {
             throw new GoodDataAuthException("Unable to login. Malformed Set-Cookie header.");
         } finally {

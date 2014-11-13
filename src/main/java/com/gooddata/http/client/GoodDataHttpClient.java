@@ -195,7 +195,7 @@ public class GoodDataHttpClient implements HttpClient {
      * </ul>
      * @throws GoodDataAuthException error
      */
-    private boolean refreshTt(final HttpHost httpHost) {
+    private boolean refreshTt(final HttpHost httpHost) throws IOException {
         log.debug("Obtaining TT");
         final HttpGet getTT = new HttpGet(TOKEN_URL);
         try {
@@ -209,8 +209,6 @@ public class GoodDataHttpClient implements HttpClient {
                 default:
                     throw new GoodDataAuthException("Unable to obtain TT, HTTP status: " + status);
             }
-        } catch (IOException e) {
-            throw new GoodDataAuthException("Error during temporary token refresh: " + e.getMessage(), e);
         } finally {
             getTT.releaseConnection();
         }
