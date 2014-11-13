@@ -96,27 +96,23 @@ public class GoodDataHttpClientTest {
         verify(httpClient, times(4)).execute(eq(host), any(HttpRequest.class), any(HttpContext.class));
     }
 
-    @Test(expected = GoodDataAuthException.class)
+    @Test
     public void execute_unableObtainSst() throws IOException {
         when(httpClient.execute(eq(host), any(HttpRequest.class), any(HttpContext.class)))
                 .thenReturn(ttChallengeResponse)
                 .thenReturn(response401);
 
-        goodDataHttpClient.execute(host, get);
-
-        verify(sstStrategy, only()).obtainSst();
-        verify(httpClient, only()).execute(eq(host), eq(get), any(HttpContext.class));
-        verify(httpClient, only()).execute(eq(host), any(HttpRequest.class));
+        assertEquals(response401.getStatusLine().getStatusCode(), goodDataHttpClient.execute(host, get).getStatusLine().getStatusCode());
     }
 
-    @Test(expected = GoodDataAuthException.class)
+    @Test
     public void execute_unableObtainTTafterSuccessfullSstObtained() throws IOException {
         when(httpClient.execute(eq(host), any(HttpRequest.class), any(HttpContext.class)))
                 .thenReturn(ttChallengeResponse)
                 .thenReturn(sstChallengeResponse)
                 .thenReturn(response401);
 
-        goodDataHttpClient.execute(host, get);
+        assertEquals(response401.getStatusLine().getStatusCode(), goodDataHttpClient.execute(host, get).getStatusLine().getStatusCode());
     }
 
     @Test

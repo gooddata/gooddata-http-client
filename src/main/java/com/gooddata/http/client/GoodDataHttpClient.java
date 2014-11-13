@@ -21,6 +21,8 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicHttpResponse;
+import org.apache.http.message.BasicStatusLine;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
@@ -171,6 +173,9 @@ public class GoodDataHttpClient implements HttpClient {
                             throw new GoodDataAuthException("Unable to obtain TT after successfully obtained SST");
                         }
                     }
+                } catch (GoodDataAuthException e) {
+                    return new BasicHttpResponse(new BasicStatusLine(originalResponse.getProtocolVersion(),
+                            HttpStatus.SC_UNAUTHORIZED, e.getMessage()));
                 } finally {
                     if (writeLock != null) {
                         writeLock.unlock();
