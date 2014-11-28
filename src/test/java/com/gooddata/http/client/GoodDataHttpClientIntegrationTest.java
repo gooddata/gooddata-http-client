@@ -58,7 +58,7 @@ public class GoodDataHttpClientIntegrationTest {
         closeJadler();
     }
 
-    @Test(expected = GoodDataAuthException.class)
+    @Test
     public void getProjectsBadLogin() throws IOException {
         onRequest()
                 .havingMethodEqualTo("GET")
@@ -93,7 +93,7 @@ public class GoodDataHttpClientIntegrationTest {
         final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(HttpClientBuilder.create().build(), jadlerHost, jadlerLogin, jadlerPassword);
         final HttpClient client = new GoodDataHttpClient(httpClient, sstStrategy);
 
-        performGet(client, jadlerHost, GDC_PROJECTS_URL, HttpStatus.SC_OK);
+        performGet(client, jadlerHost, GDC_PROJECTS_URL, HttpStatus.SC_UNAUTHORIZED);
     }
 
     @Test

@@ -21,6 +21,8 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicHttpResponse;
+import org.apache.http.message.BasicStatusLine;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
@@ -171,6 +173,9 @@ public class GoodDataHttpClient implements HttpClient {
                             throw new GoodDataAuthException("Unable to obtain TT after successfully obtained SST");
                         }
                     }
+                } catch (GoodDataAuthException e) {
+                    return new BasicHttpResponse(new BasicStatusLine(originalResponse.getProtocolVersion(),
+                            HttpStatus.SC_UNAUTHORIZED, e.getMessage()));
                 } finally {
                     if (writeLock != null) {
                         writeLock.unlock();
@@ -195,7 +200,7 @@ public class GoodDataHttpClient implements HttpClient {
      * </ul>
      * @throws GoodDataAuthException error
      */
-    private boolean refreshTt(final HttpHost httpHost) {
+    private boolean refreshTt(final HttpHost httpHost) throws IOException {
         log.debug("Obtaining TT");
         final HttpGet getTT = new HttpGet(TOKEN_URL);
         try {
@@ -209,8 +214,6 @@ public class GoodDataHttpClient implements HttpClient {
                 default:
                     throw new GoodDataAuthException("Unable to obtain TT, HTTP status: " + status);
             }
-        } catch (IOException e) {
-            throw new GoodDataAuthException("Error during temporary token refresh: " + e.getMessage(), e);
         } finally {
             getTT.releaseConnection();
         }
