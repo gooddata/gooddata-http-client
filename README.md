@@ -40,10 +40,9 @@ import org.apache.http.*;
 HttpHost hostGoodData = new HttpHost("secure.gooddata.com", 443, "https");
 
 // create login strategy, which will obtain SST via credentials
-SSTRetrievalStrategy sstStrategy = 
-     new LoginSSTRetrievalStrategy(HttpClientBuilder.create().build(), hostGoodData, login, password);
+SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(login, password);
 
-HttpClient client = new GoodDataHttpClient(HttpClientBuilder.create().build(), sstStrategy);
+HttpClient client = new GoodDataHttpClient(HttpClientBuilder.create().build(), hostGoodData, sstStrategy);
 
 // use HTTP client with transparent GoodData authentication
 HttpGet getProject = new HttpGet("/gdc/projects");
@@ -69,7 +68,7 @@ HttpHost hostGoodData = new HttpHost("secure.gooddata.com", 443, "https");
 SSTRetrievalStrategy sstStrategy = new SimpleSSTRetrievalStrategy("my super-secure token");
 
 // wrap your HTTP client into GoodData HTTP client
-HttpClient client = new GoodDataHttpClient(httpClient, sstStrategy);
+HttpClient client = new GoodDataHttpClient(httpClient, hostGoodData, sstStrategy);
 
 // use GoodData HTTP client
 HttpGet getProject = new HttpGet("/gdc/projects");
@@ -77,3 +76,4 @@ getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
 HttpResponse getProjectResponse = client.execute(hostGoodData, getProject);
 
 System.out.println(EntityUtils.toString(getProjectResponse.getEntity()));
+```
