@@ -94,7 +94,7 @@ public class GoodDataHttpClient implements HttpClient {
 
     private final SSTRetrievalStrategy sstStrategy;
 
-    private final HttpContext context;
+    private final HttpContext defaultContext;
 
     /**
      * Construct object.
@@ -104,15 +104,15 @@ public class GoodDataHttpClient implements HttpClient {
     public GoodDataHttpClient(final HttpClient httpClient, final SSTRetrievalStrategy sstStrategy) {
         this.httpClient = httpClient;
         this.sstStrategy = sstStrategy;
-        context = new BasicHttpContext();
+        defaultContext = new BasicHttpContext();
         final CookieStore cookieStore = new BasicCookieStore();
-        context.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
+        defaultContext.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
 
         //this lock is used to ensure that no threads will try to send requests while authentication is performed
-        context.setAttribute(LOCK_RW, new ReentrantReadWriteLock());
+        defaultContext.setAttribute(LOCK_RW, new ReentrantReadWriteLock());
 
         //this lock guards that only one thread enters the authentication (obtaining TT/SST) section
-        context.setAttribute(LOCK_AUTH, new ReentrantLock());
+        defaultContext.setAttribute(LOCK_AUTH, new ReentrantLock());
     }
 
     /**
@@ -147,7 +147,7 @@ public class GoodDataHttpClient implements HttpClient {
         }
         EntityUtils.consume(originalResponse.getEntity());
 
-        final Lock authLock = (Lock) context.getAttribute(LOCK_AUTH);
+        final Lock authLock = (Lock) this.defaultContext.getAttribute(LOCK_AUTH);
         final boolean entered = authLock != null ? authLock.tryLock() : true;
 
         if (entered) {
@@ -204,7 +204,7 @@ public class GoodDataHttpClient implements HttpClient {
         log.debug("Obtaining TT");
         final HttpGet getTT = new HttpGet(TOKEN_URL);
         try {
-            final HttpResponse response = httpClient.execute(httpHost, getTT, context);
+            final HttpResponse response = httpClient.execute(httpHost, getTT, defaultContext);
             final int status = response.getStatusLine().getStatusCode();
             switch (status) {
                 case HttpStatus.SC_OK:
@@ -231,12 +231,12 @@ public class GoodDataHttpClient implements HttpClient {
 
     @Override
     public HttpResponse execute(HttpHost target, HttpRequest request) throws IOException {
-        return execute(target, request, context);
+        return execute(target, request, defaultContext);
     }
 
     @Override
     public <T> T execute(HttpHost target, HttpRequest request, ResponseHandler<? extends T> responseHandler) throws IOException {
-        return execute(target, request, responseHandler, context);
+        return execute(target, request, responseHandler, defaultContext);
     }
 
     @Override
@@ -260,7 +260,7 @@ public class GoodDataHttpClient implements HttpClient {
 
     @Override
     public <T> T execute(HttpUriRequest request, ResponseHandler<? extends T> responseHandler) throws IOException {
-        return execute(request, responseHandler, context);
+        return execute(request, responseHandler, defaultContext);
     }
 
     @Override
@@ -273,9 +273,14 @@ public class GoodDataHttpClient implements HttpClient {
     @Override
     public HttpResponse execute(HttpHost target, HttpRequest request, HttpContext context) throws IOException {
         if (context == null) {
-            context = this.context;
+            context = this.defaultContext;
+        } else if (context != this.defaultContext) {
+            context = new BasicHttpContext(context);
+            context.setAttribute(HttpClientContext.COOKIE_STORE, this.defaultContext.getAttribute(HttpClientContext.COOKIE_STORE));
+            context.setAttribute(LOCK_RW, this.defaultContext.getAttribute(LOCK_RW));
+            context.setAttribute(LOCK_AUTH, this.defaultContext.getAttribute(LOCK_AUTH));
         }
-        final ReadWriteLock rwLock = (ReadWriteLock) context.getAttribute(LOCK_RW);
+        final ReadWriteLock rwLock = (ReadWriteLock) this.defaultContext.getAttribute(LOCK_RW);
         Lock readLock = null;
         if (rwLock != null) {
             readLock = rwLock.readLock();
