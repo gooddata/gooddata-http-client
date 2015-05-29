@@ -272,10 +272,14 @@ public class GoodDataHttpClientIntegrationTest {
 
     private void performGet(HttpClient client, HttpHost httpHost, String url, int expectedStatus) throws IOException {
         HttpGet getProject = new HttpGet(url);
-        getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
-        HttpResponse getProjectResponse = client.execute(httpHost, getProject);
-        assertEquals(expectedStatus, getProjectResponse.getStatusLine().getStatusCode());
-        EntityUtils.consume(getProjectResponse.getEntity());
+        try {
+            getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
+            HttpResponse getProjectResponse = client.execute(httpHost, getProject);
+            assertEquals(expectedStatus, getProjectResponse.getStatusLine().getStatusCode());
+            EntityUtils.consume(getProjectResponse.getEntity());
+        } finally {
+            getProject.releaseConnection();
+        }
     }
 
 }
