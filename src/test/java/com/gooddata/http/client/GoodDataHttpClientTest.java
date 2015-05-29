@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2013, GoodData(R) Corporation. All rights reserved.
+ * Copyright (C) 2007-2015, GoodData(R) Corporation. All rights reserved.
  * This program is made available under the terms of the BSD License.
  */
 package com.gooddata.http.client;
@@ -27,7 +27,13 @@ import java.io.IOException;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.only;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 public class GoodDataHttpClientTest {
 
@@ -58,7 +64,7 @@ public class GoodDataHttpClientTest {
         MockitoAnnotations.initMocks(this);
         host = new HttpHost("server.com");
         get = new HttpGet("/url");
-        goodDataHttpClient = new GoodDataHttpClient(httpClient, sstStrategy);
+        goodDataHttpClient = new GoodDataHttpClient(httpClient, host, sstStrategy);
 
         ttChallengeResponse = createResponse(HttpStatus.SC_UNAUTHORIZED, "<html><head><title>401 Authorization Required</title></head><body></body>", "Unauthorized");
         ttChallengeResponse.setHeader(new BasicHeader("WWW-Authenticate", "GoodData realm=\"GoodData API\" cookie=GDCAuthTT"));
@@ -70,7 +76,7 @@ public class GoodDataHttpClientTest {
 
         okResponse = createResponse(HttpStatus.SC_OK, "<html><head><title>OK</title></head><body></body>", "OK");
 
-        ttRefreshedResponse = createResponse(HttpStatus.SC_OK, "<html><head><title>TT OK</title></head><body></body>", "OK");
+        ttRefreshedResponse = createResponse(HttpStatus.SC_OK, "---\n  userToken\n    token: cookieTt", "OK");
     }
 
     private HttpResponse createResponse(int status, String body, String reasonPhrase) {
@@ -85,15 +91,15 @@ public class GoodDataHttpClientTest {
     public void execute_sstExpired() throws IOException {
         when(httpClient.execute(eq(host), any(HttpRequest.class), any(HttpContext.class))) // original requests
                 .thenReturn(ttChallengeResponse)
-                .thenReturn(sstChallengeResponse)
                 .thenReturn(ttRefreshedResponse)
                 .thenReturn(okResponse);
 
         assertEquals(okResponse, goodDataHttpClient.execute(host, get));
 
-        verify(sstStrategy, only()).obtainSst();
+        verify(sstStrategy).obtainSst(any(HttpClient.class), any(HttpHost.class));
+        verifyNoMoreInteractions(sstStrategy);
         verify(httpClient, times(2)).execute(eq(host), eq(get), any(HttpContext.class));
-        verify(httpClient, times(4)).execute(eq(host), any(HttpRequest.class), any(HttpContext.class));
+        verify(httpClient, times(3)).execute(eq(host), any(HttpRequest.class), any(HttpContext.class));
     }
 
     @Test
@@ -122,7 +128,7 @@ public class GoodDataHttpClientTest {
 
         assertEquals(response401, goodDataHttpClient.execute(host, get));
 
-        verify(sstStrategy, never()).obtainSst();
+        verifyZeroInteractions(sstStrategy);
         verify(httpClient, only()).execute(eq(host), eq(get), any(HttpContext.class));
     }
 
@@ -137,23 +143,9 @@ public class GoodDataHttpClientTest {
 
         assertEquals(okResponse, goodDataHttpClient.execute(host, get));
 
-        verify(sstStrategy, never()).obtainSst();
+        verifyZeroInteractions(sstStrategy);
         verify(httpClient, only()).execute(eq(host), eq(get), any(HttpContext.class));
     }
 
-    @Test
-    public void execute_ttRefreshOnly() throws IOException {
-        when(httpClient.execute(eq(host), any(HttpRequest.class), any(HttpContext.class)))
-                .thenReturn(ttChallengeResponse)
-                .thenReturn(ttRefreshedResponse)
-                .thenReturn(okResponse);
-
-
-        assertEquals(okResponse, goodDataHttpClient.execute(host, get));
-
-        verify(sstStrategy, never()).obtainSst();
-        verify(httpClient, times(2)).execute(eq(host), eq(get), any(HttpContext.class));
-        verify(httpClient, times(3)).execute(eq(host), any(HttpRequest.class), any(HttpContext.class));
-    }
 
 }

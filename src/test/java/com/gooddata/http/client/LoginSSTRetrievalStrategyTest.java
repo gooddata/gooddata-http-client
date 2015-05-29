@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2013, GoodData(R) Corporation. All rights reserved.
+ * Copyright (C) 2007-2015, GoodData(R) Corporation. All rights reserved.
  * This program is made available under the terms of the BSD License.
  */
 package com.gooddata.http.client;
@@ -12,7 +12,7 @@ import org.apache.http.ProtocolVersion;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.cookie.SM;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
 import org.junit.Before;
@@ -48,17 +48,22 @@ public class LoginSSTRetrievalStrategyTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         host = new HttpHost("server.com", 123);
-        sstStrategy = new LoginSSTRetrievalStrategy(httpClient, host, LOGIN, PASSWORD);
+        sstStrategy = new LoginSSTRetrievalStrategy(LOGIN, PASSWORD);
     }
 
     @Test
-    public void obtainSst() throws IOException {
+    public void obtainSstHeader() throws IOException {
         statusLine = new BasicStatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_OK, "OK");
         final HttpResponse response = new BasicHttpResponse(statusLine);
-        response.setHeader(SM.SET_COOKIE, "GDCAuthSST=xxxtopsecretcookieSST; path=/gdc/account; secure; HttpOnly");
+        response.setEntity(new StringEntity("--" +
+                "  userLogin\n" +
+                "    profile: /gdc/account/profile/1\n" +
+                "    token: xxxtopsecretcookieSST\n" +
+                "    state: /gdc/account/login/1"
+                ));
         when(httpClient.execute(isA(HttpHost.class), isA(HttpPost.class))).thenReturn(response);
 
-        assertEquals("xxxtopsecretcookieSST", sstStrategy.obtainSst());
+        assertEquals("xxxtopsecretcookieSST", sstStrategy.obtainSst(httpClient, host));
 
         final ArgumentCaptor<HttpHost> hostCaptor = ArgumentCaptor.forClass(HttpHost.class);
         final ArgumentCaptor<HttpPost> postCaptor = ArgumentCaptor.forClass(HttpPost.class);
@@ -68,9 +73,9 @@ public class LoginSSTRetrievalStrategyTest {
         assertEquals("server.com", hostCaptor.getValue().getHostName());
         assertEquals(123, hostCaptor.getValue().getPort());
 
-        final String postBody = "{\"postUserLogin\":{\"login\":\"" + LOGIN + "\",\"password\":\"" + PASSWORD + "\",\"remember\":0}}";//TODO: JSON assert
+        final String postBody = "{\"postUserLogin\":{\"login\":\"" + LOGIN + "\",\"password\":\"" + PASSWORD + "\",\"remember\":0,\"verify_level\":2}}";//TODO: JSON assert
         StringWriter writer = new StringWriter();
-        IOUtils.copy(postCaptor.getValue().getEntity().getContent(), writer, "UTF-8");;
+        IOUtils.copy(postCaptor.getValue().getEntity().getContent(), writer, "UTF-8");
 
         assertEquals(postBody, writer.toString());
         assertEquals("/gdc/account/login", postCaptor.getValue().getURI().getPath());
@@ -82,7 +87,7 @@ public class LoginSSTRetrievalStrategyTest {
         final HttpResponse response = new BasicHttpResponse(statusLine);
         when(httpClient.execute(any(HttpHost.class), any(HttpPost.class))).thenReturn(response);
 
-        sstStrategy.obtainSst();
+        sstStrategy.obtainSst(httpClient, host);
 
     }
 }
