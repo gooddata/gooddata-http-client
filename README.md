@@ -1,7 +1,7 @@
 gooddata-http-client
 ====================
 
-GoodData HTTP client is an extension of [Jakarta HTTP Commons Client](http://hc.apache.org/httpcomponents-client-4.2.x/index.html).
+GoodData HTTP Client is an extension of [Apache HTTP Client](http://hc.apache.org/httpcomponents-client-4.3.x/index.html) (former Jakarta Commons).
 This specialized client transparently handles [GoodData authentication](http://developer.gooddata.com/article/authentication-via-api)
 so you can focus on writing logic on top of [GoodData API](https://developer.gooddata.com/api).
 
