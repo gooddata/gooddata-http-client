@@ -326,7 +326,7 @@ public class GoodDataHttpClient implements HttpClient {
                 notNull(request, "Request can't be null");
                 // this adds TT header to EVERY request to ALL hosts made by this HTTP client
                 // however the server performs additional checks to ensure client is not using forged TT
-                request.addHeader(TT_HEADER, tt);
+                request.setHeader(TT_HEADER, tt);
             }
             resp = this.httpClient.execute(target, request, context);
         } finally {
