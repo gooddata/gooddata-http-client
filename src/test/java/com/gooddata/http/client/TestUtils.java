@@ -7,6 +7,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.entity.ContentType;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
@@ -35,5 +36,11 @@ abstract class TestUtils {
         } finally {
             getProject.releaseConnection();
         }
+    }
+
+    static HttpClient createGoodDataClient(String login, String password, HttpHost host) {
+        final HttpClient httpClient = HttpClientBuilder.create().build();
+        final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(login, password);
+        return new GoodDataHttpClient(httpClient, host, sstStrategy);
     }
 }

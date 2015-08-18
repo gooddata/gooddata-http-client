@@ -1,5 +1,6 @@
 package com.gooddata.http.client;
 
+import static com.gooddata.http.client.TestUtils.createGoodDataClient;
 import static com.gooddata.http.client.TestUtils.performGet;
 
 import org.apache.http.HttpHost;
@@ -25,9 +26,7 @@ public class GoodDataHttpClientAT {
 
     @Test
     public void gdcLogin() throws IOException {
-        final HttpClient httpClient = HttpClientBuilder.create().build();
-        final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(login, password);
-        final HttpClient client = new GoodDataHttpClient(httpClient, httpHost, sstStrategy);
+        final HttpClient client = createGoodDataClient(login, password, httpHost);
 
         performGet(client, httpHost, GDC_PROJECTS_PATH, HttpStatus.SC_OK);
     }
