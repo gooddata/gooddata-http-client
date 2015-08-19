@@ -5,27 +5,22 @@
 package com.gooddata.http.client;
 
 
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.entity.ContentType;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-
+import static com.gooddata.http.client.TestUtils.performGet;
 import static net.jadler.Jadler.closeJadler;
 import static net.jadler.Jadler.initJadler;
 import static net.jadler.Jadler.onRequest;
 import static net.jadler.Jadler.port;
-import static org.junit.Assert.assertEquals;
+
+import org.apache.http.HttpHost;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.HttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
 
 public class GoodDataHttpClientIntegrationTest {
 
@@ -35,10 +30,6 @@ public class GoodDataHttpClientIntegrationTest {
     public static final String REDIRECT_URL = "/redirect/to/projects";
     private static final String SST_HEADER = "X-GDC-AuthSST";
 
-    private final String login = System.getProperty("GDC_LOGIN");
-    private final String password = System.getProperty("GDC_PASSWORD");
-    private final String sst = System.getProperty("GDC_SST");
-    final HttpHost httpHost= new HttpHost(System.getProperty("GDC_BACKEND", "secure.gooddata.com"), 443, "https");
 
     private String jadlerLogin;
     private String jadlerPassword;
@@ -238,48 +229,6 @@ public class GoodDataHttpClientIntegrationTest {
         final HttpClient client = new GoodDataHttpClient(httpClient, jadlerHost, sstStrategy);
 
         performGet(client, jadlerHost, GDC_PROJECTS_URL, HttpStatus.SC_OK);
-    }
-
-    /**
-     * For integration testing. Requires GoodData credentials.<br/>
-     * Comment ignore annotation first and run
-     * <code>mvn clean test -DGDC_LOGIN=user@email.com -DGDC_PASSWORD=password [-DGDC_BACKEND=<backend host>]</code>
-     */
-    @Ignore
-    @Test
-    public void gdcLogin() throws IOException {
-        final HttpClient httpClient = HttpClientBuilder.create().build();
-        final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(login, password);
-        final HttpClient client = new GoodDataHttpClient(httpClient, httpHost, sstStrategy);
-
-        performGet(client, httpHost, GDC_PROJECTS_URL, HttpStatus.SC_OK);
-    }
-
-    /**
-     * For integration testing. Requires GoodData credentials.<br/>
-     * Comment ignore annotation first and run
-     * <code>mvn clean test -DGDC_SST=<put your SST here></code>
-     */
-    @Ignore
-    @Test
-    public void gdcSstSimple() throws IOException {
-        final HttpClient httpClient = HttpClientBuilder.create().build();
-        final SSTRetrievalStrategy sstStrategy = new SimpleSSTRetrievalStrategy(sst);
-        final HttpClient client = new GoodDataHttpClient(httpClient, httpHost, sstStrategy);
-
-        performGet(client, httpHost, GDC_PROJECTS_URL, HttpStatus.SC_OK);
-    }
-
-    private void performGet(HttpClient client, HttpHost httpHost, String url, int expectedStatus) throws IOException {
-        HttpGet getProject = new HttpGet(url);
-        try {
-            getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
-            HttpResponse getProjectResponse = client.execute(httpHost, getProject);
-            assertEquals(expectedStatus, getProjectResponse.getStatusLine().getStatusCode());
-            EntityUtils.consume(getProjectResponse.getEntity());
-        } finally {
-            getProject.releaseConnection();
-        }
     }
 
 }
