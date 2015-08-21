@@ -101,7 +101,11 @@ public class GoodDataHttpClient implements HttpClient {
     /** this lock is used to ensure that no threads will try to send requests while authentication is performed */
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
-    /** this lock guards that only one thread enters the authentication (obtaining TT/SST) section */
+    /**
+     * This lock guards that only one thread enters the authentication (obtaining TT/SST) section.
+     * We need second lock we cannot call tryLock() on ReadWriteLock.writeLock as it returns false not only when another thread
+     * holds the write lock already (what we want here) but also when another thread holds a read lock (what we do NOT want)
+     */
     private final Lock authLock = new ReentrantLock();
 
     /** current SST (or null if not yet obtained) */
@@ -190,8 +194,8 @@ public class GoodDataHttpClient implements HttpClient {
         }
         EntityUtils.consume(originalResponse.getEntity());
 
-        if (authLock.tryLock()) {
-            try {
+        try {
+            if (authLock.tryLock()) {
                 //only one thread requiring authentication will get here.
                 final Lock writeLock = rwLock.writeLock();
                 writeLock.lock();
@@ -214,9 +218,13 @@ public class GoodDataHttpClient implements HttpClient {
                 } finally {
                     writeLock.unlock();
                 }
-            } finally {
-                authLock.unlock();
+            } else {
+                // the other thread is performing auth and thus is holding the write lock
+                // lets wait until it is finished (the write lock is granted) and then continue
+                authLock.lock();
             }
+        } finally {
+            authLock.unlock();
         }
         return this.execute(httpHost, request, context);
     }
@@ -318,7 +326,7 @@ public class GoodDataHttpClient implements HttpClient {
                 notNull(request, "Request can't be null");
                 // this adds TT header to EVERY request to ALL hosts made by this HTTP client
                 // however the server performs additional checks to ensure client is not using forged TT
-                request.addHeader(TT_HEADER, tt);
+                request.setHeader(TT_HEADER, tt);
             }
             resp = this.httpClient.execute(target, request, context);
         } finally {

@@ -77,7 +77,7 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
 
     @Override
     public String obtainSst(final HttpClient httpClient, final HttpHost httpHost) throws IOException {
-        log.debug("Obtaining STT");
+        log.debug("Obtaining SST");
         final HttpPost postLogin = new HttpPost(LOGIN_URL);
         try {
             final HttpEntity requestEntity = new StringEntity(createLoginJson(), ContentType.APPLICATION_JSON);
