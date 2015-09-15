@@ -4,9 +4,9 @@
  */
 package com.gooddata.http.client;
 
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
 
 
 public class SimpleSSTRetrievalStrategyTest {
@@ -24,4 +24,9 @@ public class SimpleSSTRetrievalStrategyTest {
         new SimpleSSTRetrievalStrategy(null);
     }
 
+    @Test
+    public void shouldLogout() throws Exception {
+        SimpleSSTRetrievalStrategy sstStrategy = new SimpleSSTRetrievalStrategy(TOKEN);
+        sstStrategy.logout(null, null, null, null, null);
+    }
 }

@@ -4,6 +4,12 @@
  */
 package com.gooddata.http.client;
 
+import static com.gooddata.http.client.GoodDataHttpClient.SST_HEADER;
+import static com.gooddata.http.client.GoodDataHttpClient.TT_HEADER;
+import static com.gooddata.http.client.GoodDataHttpClient.YAML_CONTENT_TYPE;
+import static org.apache.commons.lang.Validate.notEmpty;
+import static org.apache.commons.lang.Validate.notNull;
+
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -12,15 +18,14 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 
 import java.io.IOException;
-
-import static com.gooddata.http.client.GoodDataHttpClient.YAML_CONTENT_TYPE;
-import static org.apache.commons.lang.Validate.notNull;
 
 /**
  * This strategy obtains super-secure token via login and password.
@@ -77,6 +82,9 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
 
     @Override
     public String obtainSst(final HttpClient httpClient, final HttpHost httpHost) throws IOException {
+        notNull(httpClient, "client can't be null");
+        notNull(httpHost, "host can't be null");
+
         log.debug("Obtaining SST");
         final HttpPost postLogin = new HttpPost(LOGIN_URL);
         try {
@@ -92,6 +100,31 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
             return TokenUtils.extractToken(response);
         } finally {
             postLogin.releaseConnection();
+        }
+    }
+
+    @Override
+    public void logout(final HttpClient httpClient, final HttpHost httpHost, final String url, final String sst, final String tt)
+            throws IOException, GoodDataLogoutException {
+        notNull(httpClient, "client can't be null");
+        notNull(httpHost, "host can't be null");
+        notEmpty(url, "url can't be empty");
+        notEmpty(sst, "SST can't be empty");
+        notEmpty(tt, "TT can't be empty");
+
+        log.debug("performing logout");
+        final HttpDelete request = new HttpDelete(url);
+        try {
+            request.setHeader(SST_HEADER, sst);
+            request.setHeader(TT_HEADER, tt);
+            final HttpResponse response = httpClient.execute(httpHost, request);
+            final StatusLine statusLine = response.getStatusLine();
+            if (statusLine.getStatusCode() != HttpStatus.SC_NO_CONTENT) {
+                throw new GoodDataLogoutException("Logout unsuccessful using http",
+                        statusLine.getStatusCode(), statusLine.getReasonPhrase());
+            }
+        } finally {
+            request.releaseConnection();
         }
     }
 
