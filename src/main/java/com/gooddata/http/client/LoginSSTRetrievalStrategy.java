@@ -99,7 +99,7 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
 
             return TokenUtils.extractToken(response);
         } finally {
-            postLogin.releaseConnection();
+            postLogin.reset();
         }
     }
 
@@ -124,7 +124,7 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
                         statusLine.getStatusCode(), statusLine.getReasonPhrase());
             }
         } finally {
-            request.releaseConnection();
+            request.reset();
         }
     }
 

@@ -51,7 +51,7 @@ abstract class TestUtils {
             assertEquals(expectedStatus, getProjectResponse.getStatusLine().getStatusCode());
             return getProjectResponse.getEntity();
         } finally {
-            get.releaseConnection();
+            get.reset();
         }
     }
 
@@ -63,7 +63,7 @@ abstract class TestUtils {
             assertEquals(expectedStatus, logoutResponse.getStatusLine().getStatusCode());
             EntityUtils.consume(logoutResponse.getEntity());
         } finally {
-            logout.releaseConnection();
+            logout.reset();
         }
     }
 

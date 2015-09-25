@@ -259,7 +259,7 @@ public class GoodDataHttpClient implements HttpClient {
                     throw new GoodDataAuthException("Unable to obtain TT, HTTP status: " + status);
             }
         } finally {
-            request.releaseConnection();
+            request.reset();
         }
     }
 
