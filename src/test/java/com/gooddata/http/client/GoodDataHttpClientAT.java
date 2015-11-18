@@ -1,16 +1,26 @@
 package com.gooddata.http.client;
 
 import static com.gooddata.http.client.TestUtils.createGoodDataClient;
+import static com.gooddata.http.client.TestUtils.getForEntity;
+import static com.gooddata.http.client.TestUtils.logout;
 import static com.gooddata.http.client.TestUtils.performGet;
+import static org.junit.Assert.assertEquals;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.junit.Ignore;
+import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Acceptance tests. Requires GoodData credentials.<br/>
@@ -42,6 +52,19 @@ public class GoodDataHttpClientAT {
         final HttpClient client = new GoodDataHttpClient(httpClient, httpHost, sstStrategy);
 
         performGet(client, httpHost, GDC_PROJECTS_PATH, HttpStatus.SC_OK);
+    }
+
+    private static final Pattern profilePattern = Pattern.compile("\"/gdc/account/profile/([^\"]+)\"");
+
+    @Test
+    public void gdcLogout() throws IOException {
+        final HttpClient client = createGoodDataClient(login, password, httpHost);
+        final HttpEntity responseEntity = getForEntity(client, httpHost, "/gdc/account/profile/current", HttpStatus.SC_OK);
+        final Matcher matcher = profilePattern.matcher(EntityUtils.toString(responseEntity));
+        matcher.find();
+        final String profile = matcher.group(1);
+
+        logout(client, httpHost, profile, HttpStatus.SC_NO_CONTENT);
     }
 
 

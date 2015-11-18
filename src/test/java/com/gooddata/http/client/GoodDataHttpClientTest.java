@@ -10,6 +10,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.message.BasicHeader;
@@ -18,6 +19,7 @@ import org.apache.http.message.BasicStatusLine;
 import org.apache.http.protocol.HttpContext;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -25,8 +27,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.times;
@@ -147,5 +151,36 @@ public class GoodDataHttpClientTest {
         verify(httpClient, only()).execute(eq(host), eq(get), any(HttpContext.class));
     }
 
+    @Test
+    public void execute_logout() throws Exception {
+        // first let's login
+        when(httpClient.execute(eq(host), any(HttpGet.class), any(HttpContext.class)))
+                .thenReturn(ttChallengeResponse)
+                .thenReturn(ttRefreshedResponse)
+                .thenReturn(okResponse);
+        when(sstStrategy.obtainSst(httpClient, host)).thenReturn("SST");
 
+        final String logoutUrl = "/gdc/account/login/1";
+        final HttpResponse logoutResponse = goodDataHttpClient.execute(host, new HttpDelete(logoutUrl));
+        assertEquals(204, logoutResponse.getStatusLine().getStatusCode());
+
+        verify(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUrl), eq("SST"), eq("cookieTt"));
+    }
+
+    @Test
+    public void execute_logoutFailed() throws Exception {
+        // first let's login
+        when(httpClient.execute(eq(host), any(HttpGet.class), any(HttpContext.class)))
+                .thenReturn(ttChallengeResponse)
+                .thenReturn(ttRefreshedResponse)
+                .thenReturn(okResponse);
+        when(sstStrategy.obtainSst(httpClient, host)).thenReturn("SST");
+
+        final String logoutUrl = "/gdc/account/login/1";
+        doThrow(new GoodDataLogoutException("msg", 400, "bad request"))
+            .when(sstStrategy).logout(eq(httpClient), eq(host), any(String.class), any(String.class), any(String.class));
+
+        final HttpResponse logoutResponse = goodDataHttpClient.execute(host, new HttpDelete(logoutUrl));
+        assertEquals(400, logoutResponse.getStatusLine().getStatusCode());
+    }
 }

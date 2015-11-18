@@ -6,6 +6,7 @@ package com.gooddata.http.client;
 
 
 import static com.gooddata.http.client.TestUtils.createGoodDataClient;
+import static com.gooddata.http.client.TestUtils.logout;
 import static com.gooddata.http.client.TestUtils.performGet;
 import static net.jadler.Jadler.closeJadler;
 import static net.jadler.Jadler.initJadler;
@@ -249,6 +250,25 @@ public class GoodDataHttpClientIntegrationTest {
         performGet(client, jadlerHost, GDC_PROJECTS_PATH, HttpStatus.SC_OK);
     }
 
+    @Test
+    public void shouldLogoutOk()  throws IOException {
+        mock401OnProjects();
+        mock200OnProjects();
+
+        mock401OnToken();
+        mock200OnToken();
+
+        mockLogin();
+
+        mockLogout("profileId");
+
+        final HttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
+
+        performGet(client, jadlerHost, GDC_PROJECTS_PATH, HttpStatus.SC_OK);
+
+        logout(client, jadlerHost, "profileId", HttpStatus.SC_NO_CONTENT);
+    }
+
     private static void mock401OnProjects() {
         mock401OnPath(GDC_PROJECTS_PATH, null);
     }
@@ -339,6 +359,16 @@ public class GoodDataHttpClientIntegrationTest {
                 .havingPathEqualTo(GDC_LOGIN_PATH)
                 .havingHeaderEqualTo(ACCEPT_HEADER, CONTENT_TYPE_YAML)
                 .havingBodyEqualTo("{\"postUserLogin\":{\"login\":\"user@email.com\",\"password\":\"top secret\",\"remember\":0,\"verify_level\":2}}");
+    }
+
+    private static void mockLogout(String profileId) {
+        onRequest()
+                .havingMethodEqualTo("DELETE")
+                .havingPathEqualTo(GDC_LOGIN_PATH + "/" + profileId)
+                .havingHeaderEqualTo(SST_HEADER, "SST")
+                .havingHeaderEqualTo(TT_HEADER, "TT")
+            .respond()
+                .withStatus(204);
     }
 
 

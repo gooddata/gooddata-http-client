@@ -2,9 +2,12 @@ package com.gooddata.http.client;
 
 import static org.junit.Assert.assertEquals;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -27,14 +30,40 @@ abstract class TestUtils {
      * @throws IOException
      */
     static void performGet(HttpClient client, HttpHost httpHost, String path, int expectedStatus) throws IOException {
-        HttpGet getProject = new HttpGet(path);
+        EntityUtils.consume(getForEntity(client, httpHost, path, expectedStatus));
+    }
+
+    /**
+     * Executes GET on given host and path and asserts the response to given status
+     *
+     * @param client client for execution
+     * @param httpHost host
+     * @param path path at host
+     * @param expectedStatus status to assert
+     * @throws IOException
+     * @return fetched entity
+     */
+    static HttpEntity getForEntity(HttpClient client, HttpHost httpHost, String path, int expectedStatus) throws IOException {
+        HttpGet get = new HttpGet(path);
         try {
-            getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
-            HttpResponse getProjectResponse = client.execute(httpHost, getProject);
+            get.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
+            HttpResponse getProjectResponse = client.execute(httpHost, get);
             assertEquals(expectedStatus, getProjectResponse.getStatusLine().getStatusCode());
-            EntityUtils.consume(getProjectResponse.getEntity());
+            return getProjectResponse.getEntity();
         } finally {
-            getProject.releaseConnection();
+            get.reset();
+        }
+    }
+
+    static void logout(HttpClient client, HttpHost httpHost, String profile, int expectedStatus) throws IOException {
+        final HttpDelete logout = new HttpDelete("/gdc/account/login/" + profile);
+        try {
+            logout.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
+            HttpResponse logoutResponse = client.execute(httpHost, logout);
+            assertEquals(expectedStatus, logoutResponse.getStatusLine().getStatusCode());
+            EntityUtils.consume(logoutResponse.getEntity());
+        } finally {
+            logout.reset();
         }
     }
 

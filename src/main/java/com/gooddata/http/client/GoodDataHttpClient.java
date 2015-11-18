@@ -4,6 +4,9 @@
  */
 package com.gooddata.http.client;
 
+import static com.gooddata.http.client.LoginSSTRetrievalStrategy.LOGIN_URL;
+import static org.apache.commons.lang.Validate.notNull;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
@@ -31,8 +34,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static org.apache.commons.lang.Validate.notNull;
 
 /**
  * <p>Http client with ability to handle GoodData authentication.</p>
@@ -80,10 +81,10 @@ public class GoodDataHttpClient implements HttpClient {
     public static final String COOKIE_GDC_AUTH_TT = "cookie=GDCAuthTT";
     public static final String COOKIE_GDC_AUTH_SST = "cookie=GDCAuthSST";
 
-    static final String YAML_CONTENT_TYPE = "application/yaml";
+    static final String TT_HEADER = "X-GDC-AuthTT";
+    static final String SST_HEADER = "X-GDC-AuthSST";
 
-    private static final String SST_HEADER = "X-GDC-AuthSST";
-    private static final String TT_HEADER = "X-GDC-AuthTT";
+    static final String YAML_CONTENT_TYPE = "application/yaml";
 
     private enum GoodDataChallengeType {
         SST, TT, UNKNOWN
@@ -258,7 +259,7 @@ public class GoodDataHttpClient implements HttpClient {
                     throw new GoodDataAuthException("Unable to obtain TT, HTTP status: " + status);
             }
         } finally {
-            request.releaseConnection();
+            request.reset();
         }
     }
 
@@ -317,21 +318,44 @@ public class GoodDataHttpClient implements HttpClient {
 
     @Override
     public HttpResponse execute(HttpHost target, HttpRequest request, HttpContext context) throws IOException {
-        final Lock readLock = rwLock.readLock();
-        readLock.lock();
+        notNull(request, "Request can't be null");
+
+        final boolean logoutRequest = isLogoutRequest(target, request);
+        final Lock lock = logoutRequest ? rwLock.writeLock() : rwLock.readLock();
+
+        lock.lock();
 
         final HttpResponse resp;
         try {
             if (tt != null) {
-                notNull(request, "Request can't be null");
                 // this adds TT header to EVERY request to ALL hosts made by this HTTP client
                 // however the server performs additional checks to ensure client is not using forged TT
                 request.setHeader(TT_HEADER, tt);
+
+                if (logoutRequest) {
+                    try {
+                        sstStrategy.logout(httpClient, target, request.getRequestLine().getUri(), sst, tt);
+                        tt = null;
+                        sst = null;
+
+                        return new BasicHttpResponse(new BasicStatusLine(request.getProtocolVersion(),
+                                HttpStatus.SC_NO_CONTENT, "Logout successful"));
+                    } catch (GoodDataLogoutException e) {
+                        return new BasicHttpResponse(new BasicStatusLine(request.getProtocolVersion(),
+                                e.getStatusCode(), e.getStatusText()));
+                    }
+                }
             }
             resp = this.httpClient.execute(target, request, context);
         } finally {
-            readLock.unlock();
+            lock.unlock();
         }
         return handleResponse(target, request, resp, context);
+    }
+
+    private boolean isLogoutRequest(HttpHost target, HttpRequest request) {
+        return authHost.equals(target)
+                && "DELETE".equals(request.getRequestLine().getMethod())
+                && request.getRequestLine().getUri().startsWith(LOGIN_URL);
     }
 }

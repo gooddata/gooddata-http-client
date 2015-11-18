@@ -11,12 +11,15 @@ import org.apache.http.HttpStatus;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -25,6 +28,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.verify;
@@ -32,8 +36,10 @@ import static org.mockito.Mockito.when;
 
 public class LoginSSTRetrievalStrategyTest {
 
-    public static final String PASSWORD = "mysecret";
-    public static final String LOGIN = "user@server.com";
+    private static final String PASSWORD = "mysecret";
+    private static final String LOGIN = "user@server.com";
+    private static final String SST = "xxxtopsecretSST";
+    private static final String TT = "xxxtopsecretTT";
 
     private LoginSSTRetrievalStrategy sstStrategy;
 
@@ -43,6 +49,9 @@ public class LoginSSTRetrievalStrategyTest {
     public StatusLine statusLine;
 
     private HttpHost host;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() {
@@ -58,12 +67,12 @@ public class LoginSSTRetrievalStrategyTest {
         response.setEntity(new StringEntity("--" +
                 "  userLogin\n" +
                 "    profile: /gdc/account/profile/1\n" +
-                "    token: xxxtopsecretcookieSST\n" +
+                "    token: " + SST + "\n" +
                 "    state: /gdc/account/login/1"
                 ));
         when(httpClient.execute(isA(HttpHost.class), isA(HttpPost.class))).thenReturn(response);
 
-        assertEquals("xxxtopsecretcookieSST", sstStrategy.obtainSst(httpClient, host));
+        assertEquals(SST, sstStrategy.obtainSst(httpClient, host));
 
         final ArgumentCaptor<HttpHost> hostCaptor = ArgumentCaptor.forClass(HttpHost.class);
         final ArgumentCaptor<HttpPost> postCaptor = ArgumentCaptor.forClass(HttpPost.class);
@@ -89,5 +98,39 @@ public class LoginSSTRetrievalStrategyTest {
 
         sstStrategy.obtainSst(httpClient, host);
 
+    }
+
+    @Test
+    public void shouldLogout() throws Exception {
+        statusLine = new BasicStatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_NO_CONTENT, "NO CONTENT");
+        final HttpResponse response = new BasicHttpResponse(statusLine);
+        when(httpClient.execute(isA(HttpHost.class), isA(HttpDelete.class))).thenReturn(response);
+
+        sstStrategy.logout(httpClient, host, "/gdc/account/login/profileid", SST, TT);
+
+        final ArgumentCaptor<HttpHost> hostCaptor = ArgumentCaptor.forClass(HttpHost.class);
+        final ArgumentCaptor<HttpDelete> deleteCaptor = ArgumentCaptor.forClass(HttpDelete.class);
+
+        verify(httpClient).execute(hostCaptor.capture(), deleteCaptor.capture());
+
+        assertEquals("server.com", hostCaptor.getValue().getHostName());
+        assertEquals(123, hostCaptor.getValue().getPort());
+
+        final HttpDelete delete = deleteCaptor.getValue();
+        assertNotNull(delete);
+        assertEquals("/gdc/account/login/profileid", delete.getURI().getPath());
+        assertEquals(SST, delete.getFirstHeader("X-GDC-AuthSST").getValue());
+        assertEquals(TT, delete.getFirstHeader("X-GDC-AuthTT").getValue());
+    }
+
+    @Test
+    public void shouldThrowOnLogoutError() throws Exception {
+        statusLine = new BasicStatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_SERVICE_UNAVAILABLE, "downtime");
+        final HttpResponse response = new BasicHttpResponse(statusLine);
+        when(httpClient.execute(isA(HttpHost.class), isA(HttpDelete.class))).thenReturn(response);
+
+        expectedException.expect(new GoodDataLogoutExceptionMatcher(503, "downtime"));
+
+        sstStrategy.logout(httpClient, host, "/gdc/account/login/profileid", SST, TT);
     }
 }
