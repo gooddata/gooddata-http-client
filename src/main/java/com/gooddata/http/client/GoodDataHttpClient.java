@@ -356,6 +356,6 @@ public class GoodDataHttpClient implements HttpClient {
     private boolean isLogoutRequest(HttpHost target, HttpRequest request) {
         return authHost.equals(target)
                 && "DELETE".equals(request.getRequestLine().getMethod())
-                && request.getRequestLine().getUri().startsWith(LOGIN_URL);
+                && URI.create(request.getRequestLine().getUri()).getPath().startsWith(LOGIN_URL);
     }
 }

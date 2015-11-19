@@ -12,6 +12,7 @@ import org.apache.http.ProtocolVersion;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicHttpResponse;
@@ -25,6 +26,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.URI;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -66,7 +68,7 @@ public class GoodDataHttpClientTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        host = new HttpHost("server.com");
+        host = new HttpHost("server.com", 443, "https");
         get = new HttpGet("/url");
         goodDataHttpClient = new GoodDataHttpClient(httpClient, host, sstStrategy);
 
@@ -152,9 +154,9 @@ public class GoodDataHttpClientTest {
     }
 
     @Test
-    public void execute_logout() throws Exception {
+    public void execute_logoutPath() throws Exception {
         // first let's login
-        when(httpClient.execute(eq(host), any(HttpGet.class), any(HttpContext.class)))
+        when(httpClient.execute(eq(host), any(HttpRequestBase.class), any(HttpContext.class)))
                 .thenReturn(ttChallengeResponse)
                 .thenReturn(ttRefreshedResponse)
                 .thenReturn(okResponse);
@@ -165,6 +167,22 @@ public class GoodDataHttpClientTest {
         assertEquals(204, logoutResponse.getStatusLine().getStatusCode());
 
         verify(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUrl), eq("SST"), eq("cookieTt"));
+    }
+
+    @Test
+    public void execute_logoutUri() throws Exception {
+        // first let's login
+        when(httpClient.execute(eq(host), any(HttpRequestBase.class), any(HttpContext.class)))
+                .thenReturn(ttChallengeResponse)
+                .thenReturn(ttRefreshedResponse)
+                .thenReturn(okResponse);
+        when(sstStrategy.obtainSst(httpClient, host)).thenReturn("SST");
+
+        final String logoutUri = "https://server.com:443/gdc/account/login/1";
+        final HttpResponse logoutResponse = goodDataHttpClient.execute(new HttpDelete(URI.create(logoutUri)));
+        assertEquals(204, logoutResponse.getStatusLine().getStatusCode());
+
+        verify(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUri), eq("SST"), eq("cookieTt"));
     }
 
     @Test
