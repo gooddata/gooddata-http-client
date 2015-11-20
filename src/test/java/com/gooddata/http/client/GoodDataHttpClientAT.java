@@ -59,8 +59,8 @@ public class GoodDataHttpClientAT {
     @Test
     public void gdcLogout() throws IOException {
         final HttpClient client = createGoodDataClient(login, password, httpHost);
-        final HttpEntity responseEntity = getForEntity(client, httpHost, "/gdc/account/profile/current", HttpStatus.SC_OK);
-        final Matcher matcher = profilePattern.matcher(EntityUtils.toString(responseEntity));
+        final String response = getForEntity(client, httpHost, "/gdc/account/profile/current", HttpStatus.SC_OK);
+        final Matcher matcher = profilePattern.matcher(response);
         matcher.find();
         final String profile = matcher.group(1);
 

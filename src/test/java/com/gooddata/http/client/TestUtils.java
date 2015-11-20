@@ -30,7 +30,7 @@ abstract class TestUtils {
      * @throws IOException
      */
     static void performGet(HttpClient client, HttpHost httpHost, String path, int expectedStatus) throws IOException {
-        EntityUtils.consume(getForEntity(client, httpHost, path, expectedStatus));
+        getForEntity(client, httpHost, path, expectedStatus);
     }
 
     /**
@@ -41,15 +41,15 @@ abstract class TestUtils {
      * @param path path at host
      * @param expectedStatus status to assert
      * @throws IOException
-     * @return fetched entity
+     * @return fetched entity string representation
      */
-    static HttpEntity getForEntity(HttpClient client, HttpHost httpHost, String path, int expectedStatus) throws IOException {
+    static String getForEntity(HttpClient client, HttpHost httpHost, String path, int expectedStatus) throws IOException {
         HttpGet get = new HttpGet(path);
         try {
             get.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
             HttpResponse getProjectResponse = client.execute(httpHost, get);
             assertEquals(expectedStatus, getProjectResponse.getStatusLine().getStatusCode());
-            return getProjectResponse.getEntity();
+            return getProjectResponse.getEntity() == null ? null : EntityUtils.toString(getProjectResponse.getEntity());
         } finally {
             get.reset();
         }
