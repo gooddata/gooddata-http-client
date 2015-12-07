@@ -5,14 +5,17 @@
 package com.gooddata.http.client;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.StatusLine;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
@@ -24,11 +27,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.verify;
@@ -36,6 +42,8 @@ import static org.mockito.Mockito.when;
 
 public class LoginSSTRetrievalStrategyTest {
 
+    private static final String FAILURE_REASON = "Bad username or password";
+    private static final String REQUEST_ID = "requestIdTest";
     private static final String PASSWORD = "mysecret";
     private static final String LOGIN = "user@server.com";
     private static final String SST = "xxxtopsecretSST";
@@ -45,6 +53,9 @@ public class LoginSSTRetrievalStrategyTest {
 
     @Mock
     public HttpClient httpClient;
+
+    @Mock
+    public Log logger;
 
     public StatusLine statusLine;
 
@@ -132,5 +143,52 @@ public class LoginSSTRetrievalStrategyTest {
         expectedException.expect(new GoodDataLogoutExceptionMatcher(503, "downtime"));
 
         sstStrategy.logout(httpClient, host, "/gdc/account/login/profileid", SST, TT);
+    }
+
+    @Test(expected = GoodDataAuthException.class)
+    public void logLoginFailureRequestId() throws Exception{
+        prepareLoginFailureResponse();
+        try {
+            sstStrategy.obtainSst(httpClient, host);
+        } finally {
+            ArgumentCaptor<String> logMessageCaptor = ArgumentCaptor.forClass(String.class);
+            verify(logger).info(logMessageCaptor.capture());
+            assertThat("Missing requestId at the log message",logMessageCaptor.getValue(), containsString(REQUEST_ID));
+        }
+    }
+
+    @Test(expected = GoodDataAuthException.class)
+    public void logLoginFailureReason() throws Exception{
+        prepareLoginFailureResponse();
+        try {
+            sstStrategy.obtainSst(httpClient, host);
+        } finally {
+            ArgumentCaptor<String> logMessageCaptor = ArgumentCaptor.forClass(String.class);
+            verify(logger).info(logMessageCaptor.capture());
+            assertThat("Missing login failure at the log message",logMessageCaptor.getValue(), containsString(FAILURE_REASON));
+        }
+    }
+
+    @Test(expected = GoodDataAuthException.class)
+    public void logLoginFailureHttpStatus() throws Exception{
+        prepareLoginFailureResponse();
+        try {
+            sstStrategy.obtainSst(httpClient, host);
+        } finally {
+            ArgumentCaptor<String> logMessageCaptor = ArgumentCaptor.forClass(String.class);
+            verify(logger).info(logMessageCaptor.capture());
+            assertThat("Missing HTTP response status at the log message",logMessageCaptor.getValue(), containsString("401"));
+        }
+    }
+
+    private void prepareLoginFailureResponse() throws IOException, ClientProtocolException {
+        statusLine = new BasicStatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_UNAUTHORIZED, "Unauthorized");
+        final HttpResponse response = new BasicHttpResponse(statusLine);
+        response.setHeader("X-GDC-Request", REQUEST_ID);
+        BasicHttpEntity entity = new BasicHttpEntity();
+        entity.setContent(new ByteArrayInputStream(FAILURE_REASON.getBytes()));
+        response.setEntity(entity);
+        when(httpClient.execute(any(HttpHost.class), any(HttpPost.class))).thenReturn(response);
+        sstStrategy.setLogger(logger);
     }
 }
