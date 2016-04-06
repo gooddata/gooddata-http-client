@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
  */
 class TokenUtils {
 
-    private static final Pattern pattern = Pattern.compile("token: (.+)");
+    private static final Pattern pattern = Pattern.compile("token: [\"']?([^\"'\\s]+)");
 
     private TokenUtils() { }
 
