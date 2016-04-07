@@ -15,6 +15,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TokenUtilsTest {
+
     @Test
     public void shouldExtractSST() throws Exception {
         String tt = TokenUtils.extractToken(response("--- \n" +
@@ -26,10 +27,38 @@ public class TokenUtilsTest {
     }
 
     @Test
+    public void shouldExtractSingleQuotedSST() throws Exception {
+        String tt = TokenUtils.extractToken(response("--- \n" +
+                "userLogin: \n" +
+                "  profile: '/gdc/account/profile/1'\n" +
+                "  token: 'nbWW7peskrKbSMYj'\n" +
+                "  state: '/gdc/account/login/1'"));
+        assertEquals("nbWW7peskrKbSMYj", tt);
+    }
+
+    @Test
+    public void shouldExtractQuotedSST() throws Exception {
+        String tt = TokenUtils.extractToken(response("--- \n" +
+                "userLogin: \n" +
+                "  profile: \"/gdc/account/profile/1\"\n" +
+                "  state: \"/gdc/account/login/1\"\n" +
+                "  token: \"nbWW7peskrKbSMYj\""));
+        assertEquals("nbWW7peskrKbSMYj", tt);
+    }
+
+    @Test
     public void shouldExtractTT() throws Exception {
         String tt = TokenUtils.extractToken(response("---\n" +
                 "  userToken:\n" +
                 "    token: nbWW7peskrKbSMYj"));
+        assertEquals("nbWW7peskrKbSMYj", tt);
+    }
+
+    @Test
+    public void shouldExtractQuotedTT() throws Exception {
+        String tt = TokenUtils.extractToken(response("---\n" +
+                "  userToken:\n" +
+                "    token: \"nbWW7peskrKbSMYj\""));
         assertEquals("nbWW7peskrKbSMYj", tt);
     }
 
