@@ -97,6 +97,19 @@ public class GoodDataHttpClient implements HttpClient {
     private final HttpContext context;
 
     /**
+     * Construct object. This constructor takes authHost argument because of forward compatibility with v0.9.x,
+     * but it's not being used in this version.
+     *
+     * @param httpClient  Http client
+     * @param authHost    ignored before version 0.9.0
+     * @param sstStrategy super-secure token (SST) obtaining strategy
+     */
+    public GoodDataHttpClient(final HttpClient httpClient, final HttpHost authHost,
+                              final SSTRetrievalStrategy sstStrategy) {
+        this(httpClient, sstStrategy);
+    }
+
+    /**
      * Construct object.
      * @param httpClient Http client
      * @param sstStrategy super-secure token (SST) obtaining strategy
