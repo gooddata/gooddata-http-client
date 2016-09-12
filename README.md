@@ -77,3 +77,20 @@ HttpResponse getProjectResponse = client.execute(hostGoodData, getProject);
 
 System.out.println(EntityUtils.toString(getProjectResponse.getEntity()));
 ```
+
+## Build
+
+```
+mvn package
+```
+
+### Unit tests
+```
+mvn test
+```
+
+### Acceptance tests (with real backend)
+
+```
+mvn -P at clean verify -DGDC_LOGIN=user@email.com -DGDC_PASSWORD=password [-DGDC_BACKEND=<backend host>]
+```
