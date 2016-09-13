@@ -94,3 +94,8 @@ mvn test
 ```
 mvn -P at clean verify -DGDC_LOGIN=user@email.com -DGDC_PASSWORD=password [-DGDC_BACKEND=<backend host>]
 ```
+
+## Notice
+
+GoodData Corporation provides this software "as-is" under conditions
+specified in the [license](LICENSE.txt).
