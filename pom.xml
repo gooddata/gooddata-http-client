@@ -24,8 +24,8 @@
             <organizationUrl>http://www.gooddata.com/</organizationUrl>
         </developer>
         <developer>
-            <name>Jan Dudek</name>
-            <email>jan.dudek@gooddata.com</email>
+            <name>Martin Caslavsky</name>
+            <email>martin.caslavsky@gooddata.com</email>
             <organization>GoodData Corporation</organization>
             <organizationUrl>http://www.gooddata.com/</organizationUrl>
         </developer>
@@ -175,6 +175,33 @@
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>3.0</version>
+                <configuration>
+                    <header>src/license_header.txt</header>
+                    <failIfMissing>true</failIfMissing>
+                    <failIfUnknown>true</failIfUnknown>
+                    <skipExistingHeaders>true</skipExistingHeaders>
+                    <properties>
+                        <inceptionYear>2007</inceptionYear>
+                        <currentYear>${currentYear}</currentYear>
+                    </properties>
+                    <includes>
+                        <include>src/**/*.java</include>
+                    </includes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <!-- add missing license: mvn com.mycila:license-maven-plugin:3.0:format -->
+            </plugin>
         </plugins>
     </build>
 
@@ -182,6 +209,8 @@
         <jadler.version>1.1.1</jadler.version>
         <slf4j.version>1.7.2</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.build.timestamp.format>yyyy</maven.build.timestamp.format>
+        <currentYear>${maven.build.timestamp}</currentYear>
     </properties>
 
     <profiles>

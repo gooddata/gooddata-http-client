@@ -2,7 +2,7 @@ gooddata-http-client
 ====================
 
 GoodData HTTP Client is an extension of [Apache HTTP Client](http://hc.apache.org/httpcomponents-client-4.3.x/index.html) (former Jakarta Commons).
-This specialized client transparently handles [GoodData authentication](http://developer.gooddata.com/article/authentication-via-api)
+This specialized client transparently handles [GoodData authentication](https://developer.gooddata.com/api#/introduction/use-cases/log-in)
 so you can focus on writing logic on top of [GoodData API](https://developer.gooddata.com/api).
 
 ## Design
@@ -77,3 +77,25 @@ HttpResponse getProjectResponse = client.execute(hostGoodData, getProject);
 
 System.out.println(EntityUtils.toString(getProjectResponse.getEntity()));
 ```
+
+## Build
+
+```
+mvn package
+```
+
+### Unit tests
+```
+mvn test
+```
+
+### Acceptance tests (with real backend)
+
+```
+mvn -P at clean verify -DGDC_LOGIN=user@email.com -DGDC_PASSWORD=password [-DGDC_BACKEND=<backend host>]
+```
+
+## Notice
+
+GoodData Corporation provides this software "as-is" under conditions
+specified in the [license](LICENSE.txt).
