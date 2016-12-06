@@ -12,7 +12,6 @@ import static java.lang.String.format;
 import static org.apache.commons.lang.Validate.notEmpty;
 import static org.apache.commons.lang.Validate.notNull;
 
-import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
@@ -94,7 +93,7 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
         log.debug("Obtaining SST");
         final HttpPost postLogin = new HttpPost(LOGIN_URL);
         try {
-            final HttpEntity requestEntity = new StringEntity(createLoginJson(), ContentType.APPLICATION_JSON);
+            final HttpEntity requestEntity = new StringEntity(JsonUtils.createLoginJson(login, password, VERIFICATION_LEVEL), ContentType.APPLICATION_JSON);
             postLogin.setEntity(requestEntity);
             postLogin.setHeader(HttpHeaders.ACCEPT, YAML_CONTENT_TYPE);
             final HttpResponse response = httpClient.execute(httpHost, postLogin);
@@ -152,12 +151,6 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
         } finally {
             request.reset();
         }
-    }
-
-    private String createLoginJson() {
-        return "{\"postUserLogin\":{\"login\":\"" + StringEscapeUtils.escapeJavaScript(login) +
-                "\",\"password\":\"" + StringEscapeUtils.escapeJavaScript(password) + "\",\"remember\":0" +
-                ",\"verify_level\":" + VERIFICATION_LEVEL + "}}";
     }
 
     /**
