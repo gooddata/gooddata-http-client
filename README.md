@@ -1,5 +1,4 @@
-gooddata-http-client
-====================
+# GoodData HTTP Client [![Build Status](https://travis-ci.org/gooddata/gooddata-http-client.svg?branch=master)](https://travis-ci.org/gooddata/gooddata-http-client) [![Javadocs](http://javadoc.io/badge/com.gooddata/gooddata-http-client.svg)](http://javadoc.io/doc/com.gooddata/gooddata-http-client) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.gooddata/gooddata-http-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.gooddata/gooddata-http-client)
 
 GoodData HTTP Client is an extension of [Apache HTTP Client](http://hc.apache.org/httpcomponents-client-4.3.x/index.html) (former Jakarta Commons).
 This specialized Java client transparently handles [GoodData authentication](https://developer.gooddata.com/api#/introduction/use-cases/log-in)
