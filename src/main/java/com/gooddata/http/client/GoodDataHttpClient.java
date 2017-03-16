@@ -6,7 +6,7 @@
 package com.gooddata.http.client;
 
 import static com.gooddata.http.client.LoginSSTRetrievalStrategy.LOGIN_URL;
-import static org.apache.commons.lang.Validate.notNull;
+import static org.apache.commons.lang3.Validate.notNull;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

@@ -20,7 +20,7 @@ public class SimpleSSTRetrievalStrategyTest {
         assertEquals(TOKEN, sstStrategy.obtainSst(null, null));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void constructor_nullSst() {
         new SimpleSSTRetrievalStrategy(null);
     }

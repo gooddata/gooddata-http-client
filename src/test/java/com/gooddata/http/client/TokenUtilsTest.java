@@ -30,12 +30,12 @@ public class TokenUtilsTest {
         response = new BasicHttpResponse(STATUS);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void shouldFailOnNullResponseSST() throws Exception {
         extractSST(null);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void shouldFailOnNullResponseTT() throws Exception {
         extractTT(null);
     }

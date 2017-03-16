@@ -8,8 +8,8 @@ package com.gooddata.http.client;
 import static com.gooddata.http.client.GoodDataHttpClient.SST_HEADER;
 import static com.gooddata.http.client.GoodDataHttpClient.TT_HEADER;
 import static java.lang.String.format;
-import static org.apache.commons.lang.Validate.notEmpty;
-import static org.apache.commons.lang.Validate.notNull;
+import static org.apache.commons.lang3.Validate.notEmpty;
+import static org.apache.commons.lang3.Validate.notNull;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

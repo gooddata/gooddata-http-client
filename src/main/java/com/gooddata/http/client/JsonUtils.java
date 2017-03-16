@@ -5,7 +5,7 @@
  */
 package com.gooddata.http.client;
 
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 
 /**
  * Internal JSON helper

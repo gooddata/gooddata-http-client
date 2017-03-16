@@ -10,7 +10,7 @@ import org.apache.http.HttpResponse;
 
 import static com.gooddata.http.client.GoodDataHttpClient.SST_HEADER;
 import static com.gooddata.http.client.GoodDataHttpClient.TT_HEADER;
-import static org.apache.commons.lang.Validate.notNull;
+import static org.apache.commons.lang3.Validate.notNull;
 
 /**
  * Contains handy methods for working with SST and TT tokens.
