@@ -27,6 +27,7 @@ import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.slf4j.Logger;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -57,7 +58,7 @@ public class LoginSSTRetrievalStrategyTest {
     public HttpClient httpClient;
 
     @Mock
-    public Log logger;
+    public Logger logger;
 
     public StatusLine statusLine;
 

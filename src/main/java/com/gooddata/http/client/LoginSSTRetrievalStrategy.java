@@ -11,8 +11,6 @@ import static java.lang.String.format;
 import static org.apache.commons.lang3.Validate.notEmpty;
 import static org.apache.commons.lang3.Validate.notNull;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -25,6 +23,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -40,7 +40,7 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
     /** SST and TT must be present in the HTTP header. */
     private static final int VERIFICATION_LEVEL = 2;
 
-    private Log log = LogFactory.getLog(getClass());
+    private Logger log = LoggerFactory.getLogger(getClass());
 
     private final String login;
 
@@ -154,7 +154,7 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
     /**
      * Fot tests only
      */
-    void setLogger(Log log) {
+    void setLogger(Logger log) {
         this.log = log;
     }
 
