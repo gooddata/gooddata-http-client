@@ -5,82 +5,64 @@
  */
 package com.gooddata.http.client;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.entity.StringEntity;
+import org.apache.http.HttpStatus;
+import org.apache.http.ProtocolVersion;
+import org.apache.http.message.BasicHttpResponse;
+import org.apache.http.message.BasicStatusLine;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.io.UnsupportedEncodingException;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static com.gooddata.http.client.GoodDataHttpClient.SST_HEADER;
+import static com.gooddata.http.client.GoodDataHttpClient.TT_HEADER;
+import static com.gooddata.http.client.TokenUtils.extractSST;
+import static com.gooddata.http.client.TokenUtils.extractTT;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 public class TokenUtilsTest {
 
+    private static final BasicStatusLine STATUS = new BasicStatusLine(new ProtocolVersion("http", 1, 1), HttpStatus.SC_OK, "OK");
+
+    private BasicHttpResponse response;
+
+    @Before
+    public void setUp() throws Exception {
+        response = new BasicHttpResponse(STATUS);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldFailOnNullResponseSST() throws Exception {
+        extractSST(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldFailOnNullResponseTT() throws Exception {
+        extractTT(null);
+    }
+
+    @Test(expected = GoodDataAuthException.class)
+    public void shouldFailOnMissingHeaderSST() throws Exception {
+        extractSST(response);
+    }
+
+    @Test(expected = GoodDataAuthException.class)
+    public void shouldFailOnMissingHeaderTT() throws Exception {
+        extractTT(response);
+    }
+
     @Test
     public void shouldExtractSST() throws Exception {
-        String tt = TokenUtils.extractToken(response("--- \n" +
-                "userLogin: \n" +
-                "  profile: /gdc/account/profile/1\n" +
-                "  state: /gdc/account/login/1\n" +
-                "  token: nbWW7peskrKbSMYj"));
-        assertEquals("nbWW7peskrKbSMYj", tt);
-    }
-
-    @Test
-    public void shouldExtractSingleQuotedSST() throws Exception {
-        String tt = TokenUtils.extractToken(response("--- \n" +
-                "userLogin: \n" +
-                "  profile: '/gdc/account/profile/1'\n" +
-                "  token: 'nbWW7peskrKbSMYj'\n" +
-                "  state: '/gdc/account/login/1'"));
-        assertEquals("nbWW7peskrKbSMYj", tt);
-    }
-
-    @Test
-    public void shouldExtractQuotedSST() throws Exception {
-        String tt = TokenUtils.extractToken(response("--- \n" +
-                "userLogin: \n" +
-                "  profile: \"/gdc/account/profile/1\"\n" +
-                "  state: \"/gdc/account/login/1\"\n" +
-                "  token: \"nbWW7peskrKbSMYj\""));
-        assertEquals("nbWW7peskrKbSMYj", tt);
+        response.addHeader(SST_HEADER, "sst");
+        response.addHeader(SST_HEADER, "sst2");
+        final String token = extractSST(response);
+        assertThat(token, is("sst"));
     }
 
     @Test
     public void shouldExtractTT() throws Exception {
-        String tt = TokenUtils.extractToken(response("---\n" +
-                "  userToken:\n" +
-                "    token: nbWW7peskrKbSMYj"));
-        assertEquals("nbWW7peskrKbSMYj", tt);
-    }
-
-    @Test
-    public void shouldExtractQuotedTT() throws Exception {
-        String tt = TokenUtils.extractToken(response("---\n" +
-                "  userToken:\n" +
-                "    token: \"nbWW7peskrKbSMYj\""));
-        assertEquals("nbWW7peskrKbSMYj", tt);
-    }
-
-    @Test(expected = GoodDataAuthException.class)
-    public void shouldFailOnEmptyString() throws Exception {
-        TokenUtils.extractToken(response(""));
-    }
-
-    @Test(expected = GoodDataAuthException.class)
-    public void shouldFailOnEmptyToken() throws Exception {
-        TokenUtils.extractToken(response("token: "));
-    }
-
-    @Test(expected = GoodDataAuthException.class)
-    public void shouldFailOnInvalid() throws Exception {
-        TokenUtils.extractToken(response("foo"));
-    }
-
-    private static HttpResponse response(final String body) throws UnsupportedEncodingException {
-        final HttpResponse response = mock(HttpResponse.class);
-        when(response.getEntity()).thenReturn(new StringEntity(body));
-        return response;
+        response.addHeader(TT_HEADER, "tt");
+        response.addHeader(TT_HEADER, "tt2");
+        final String token = extractTT(response);
+        assertThat(token, is("tt"));
     }
 }

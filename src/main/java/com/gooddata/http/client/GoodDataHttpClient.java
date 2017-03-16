@@ -11,7 +11,6 @@ import static org.apache.commons.lang.Validate.notNull;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
-import org.apache.http.HttpHeaders;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -84,8 +83,6 @@ public class GoodDataHttpClient implements HttpClient {
 
     static final String TT_HEADER = "X-GDC-AuthTT";
     static final String SST_HEADER = "X-GDC-AuthSST";
-
-    static final String YAML_CONTENT_TYPE = "application/yaml";
 
     private enum GoodDataChallengeType {
         SST, TT, UNKNOWN
@@ -245,13 +242,12 @@ public class GoodDataHttpClient implements HttpClient {
 
         final HttpGet request = new HttpGet(TOKEN_URL);
         try {
-            request.setHeader(HttpHeaders.ACCEPT, YAML_CONTENT_TYPE);
             request.setHeader(SST_HEADER, sst);
             final HttpResponse response = httpClient.execute(authHost, request, (HttpContext) null);
             final int status = response.getStatusLine().getStatusCode();
             switch (status) {
                 case HttpStatus.SC_OK:
-                    tt = TokenUtils.extractToken(response);
+                    tt = TokenUtils.extractTT(response);
                     return true;
                 case HttpStatus.SC_UNAUTHORIZED:
                     // we probably may check if SST challenge is present to be sure the problem is the expired SST

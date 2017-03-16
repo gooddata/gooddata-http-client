@@ -7,7 +7,6 @@ package com.gooddata.http.client;
 
 import static com.gooddata.http.client.GoodDataHttpClient.SST_HEADER;
 import static com.gooddata.http.client.GoodDataHttpClient.TT_HEADER;
-import static com.gooddata.http.client.GoodDataHttpClient.YAML_CONTENT_TYPE;
 import static java.lang.String.format;
 import static org.apache.commons.lang.Validate.notEmpty;
 import static org.apache.commons.lang.Validate.notNull;
@@ -16,7 +15,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -95,7 +93,6 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
         try {
             final HttpEntity requestEntity = new StringEntity(JsonUtils.createLoginJson(login, password, VERIFICATION_LEVEL), ContentType.APPLICATION_JSON);
             postLogin.setEntity(requestEntity);
-            postLogin.setHeader(HttpHeaders.ACCEPT, YAML_CONTENT_TYPE);
             final HttpResponse response = httpClient.execute(httpHost, postLogin);
             int status = response.getStatusLine().getStatusCode();
             if (status != HttpStatus.SC_OK) {
@@ -107,7 +104,8 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
                 throw new GoodDataAuthException(message);
             }
 
-            return TokenUtils.extractToken(response);
+            // todo TT is present at response as well - extract it to save one HTTP call
+            return TokenUtils.extractSST(response);
         } finally {
             postLogin.reset();
         }

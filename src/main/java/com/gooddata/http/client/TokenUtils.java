@@ -5,33 +5,33 @@
  */
 package com.gooddata.http.client;
 
+import org.apache.http.Header;
 import org.apache.http.HttpResponse;
-import org.apache.http.util.EntityUtils;
 
-import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import static com.gooddata.http.client.GoodDataHttpClient.SST_HEADER;
+import static com.gooddata.http.client.GoodDataHttpClient.TT_HEADER;
+import static org.apache.commons.lang.Validate.notNull;
 
 /**
  * Contains handy methods for working with SST and TT tokens.
  */
 class TokenUtils {
 
-    private static final Pattern pattern = Pattern.compile("token: [\"']?([^\"'\\s]+)");
-
-    private TokenUtils() { }
-
-    static String extractToken(final HttpResponse response) throws IOException {
-        final String responseBody = response == null || response.getEntity() == null ? "" : EntityUtils.toString(response.getEntity());
-        final Matcher matcher = pattern.matcher(responseBody);
-        if (!matcher.find()) {
-            throw new GoodDataAuthException("Unable to login. Malformed response body: " + responseBody);
-        }
-        final String token = matcher.group(1);
-        if (token == null) {
-            throw new GoodDataAuthException("Unable to login. Malformed response body: " + responseBody);
-        }
-        return token;
+    static String extractSST(final HttpResponse response) {
+        return extractToken(response, SST_HEADER);
     }
 
+    static String extractTT(final HttpResponse response) {
+        return extractToken(response, TT_HEADER);
+    }
+
+    private static String extractToken(final HttpResponse response, final String headerName) {
+        notNull(response, "response can't be null");
+        notNull(headerName, "headerName can't be null");
+        final Header header = response.getFirstHeader(headerName);
+        if (header == null) {
+            throw new GoodDataAuthException("Unable to login. Response doesn't contain header " + headerName);
+        }
+        return header.getValue();
+    }
 }
