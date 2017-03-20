@@ -21,7 +21,6 @@ import org.apache.http.message.BasicStatusLine;
 import org.apache.http.protocol.HttpContext;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -29,12 +28,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 
+import static com.gooddata.http.client.GoodDataHttpClient.TT_HEADER;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -83,11 +81,16 @@ public class GoodDataHttpClientTest {
 
         okResponse = createResponse(HttpStatus.SC_OK, "<html><head><title>OK</title></head><body></body>", "OK");
 
-        ttRefreshedResponse = createResponse(HttpStatus.SC_OK, "---\n  userToken\n    token: cookieTt", "OK");
+        ttRefreshedResponse = createResponse(HttpStatus.SC_OK, "OK");
+        ttRefreshedResponse.setHeader(TT_HEADER, "cookieTt");
+    }
+
+    private HttpResponse createResponse(final int status, final String reasonPhrase) {
+        return new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("https", 1, 1), status, reasonPhrase));
     }
 
     private HttpResponse createResponse(int status, String body, String reasonPhrase) {
-        HttpResponse response = new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("https", 1, 1), status, reasonPhrase));
+        HttpResponse response = createResponse(status, reasonPhrase);
         BasicHttpEntity entity = new BasicHttpEntity();
         entity.setContent(new ByteArrayInputStream(body.getBytes()));
         response.setEntity(entity);

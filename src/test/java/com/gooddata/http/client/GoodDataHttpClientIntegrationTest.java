@@ -59,7 +59,6 @@ public class GoodDataHttpClientIntegrationTest {
 
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_JSON_UTF = "application/json; charset=UTF-8";
-    private static final String CONTENT_TYPE_YAML = "application/yaml";
 
     private static final Charset CHARSET = Charset.forName("UTF-8");
 
@@ -339,17 +338,16 @@ public class GoodDataHttpClientIntegrationTest {
     private static ResponseStubbing respond200OnToken(ResponseStubbing stub, String tt) {
         return stub
                 .withStatus(200)
-                .withBody("---\n  userToken\n    token: " + tt)
+                .withHeader(TT_HEADER, tt)
                 .withEncoding(CHARSET)
-                .withContentType(CONTENT_TYPE_JSON);
+                ;
     }
 
     private static void mockLogin() {
         requestOnLogin()
                 .respond()
                 .withStatus(200)
-                .withBody("---\nuserLogin\n  profile: /gdc/account/profile/asdfasdf45t4ar\n  token: SST\n  state: /gdc/account/login/asdfasdf45t4ar")
-                .withContentType(CONTENT_TYPE_YAML)
+                .withHeader(SST_HEADER, "SST")
                 .withEncoding(CHARSET);
     }
 
@@ -358,7 +356,6 @@ public class GoodDataHttpClientIntegrationTest {
         return onRequest()
                 .havingMethodEqualTo("POST")
                 .havingPathEqualTo(GDC_LOGIN_PATH)
-                .havingHeaderEqualTo(ACCEPT_HEADER, CONTENT_TYPE_YAML)
                 .havingBodyEqualTo("{\"postUserLogin\":{\"login\":\"user@email.com\",\"password\":\"top secret\",\"remember\":0,\"verify_level\":2}}");
     }
 

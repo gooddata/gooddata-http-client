@@ -6,12 +6,11 @@
 package com.gooddata.http.client;
 
 import static com.gooddata.http.client.LoginSSTRetrievalStrategy.LOGIN_URL;
-import static org.apache.commons.lang.Validate.notNull;
+import static org.apache.commons.lang3.Validate.notNull;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
-import org.apache.http.HttpHeaders;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -28,6 +27,8 @@ import org.apache.http.message.BasicStatusLine;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
@@ -85,13 +86,11 @@ public class GoodDataHttpClient implements HttpClient {
     static final String TT_HEADER = "X-GDC-AuthTT";
     static final String SST_HEADER = "X-GDC-AuthSST";
 
-    static final String YAML_CONTENT_TYPE = "application/yaml";
-
     private enum GoodDataChallengeType {
         SST, TT, UNKNOWN
     }
 
-    private final Log log = LogFactory.getLog(getClass());
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final HttpClient httpClient;
 
@@ -245,13 +244,12 @@ public class GoodDataHttpClient implements HttpClient {
 
         final HttpGet request = new HttpGet(TOKEN_URL);
         try {
-            request.setHeader(HttpHeaders.ACCEPT, YAML_CONTENT_TYPE);
             request.setHeader(SST_HEADER, sst);
             final HttpResponse response = httpClient.execute(authHost, request, (HttpContext) null);
             final int status = response.getStatusLine().getStatusCode();
             switch (status) {
                 case HttpStatus.SC_OK:
-                    tt = TokenUtils.extractToken(response);
+                    tt = TokenUtils.extractTT(response);
                     return true;
                 case HttpStatus.SC_UNAUTHORIZED:
                     // we probably may check if SST challenge is present to be sure the problem is the expired SST

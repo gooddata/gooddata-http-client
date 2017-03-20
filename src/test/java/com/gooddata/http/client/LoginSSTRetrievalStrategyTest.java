@@ -27,11 +27,13 @@ import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.slf4j.Logger;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 
+import static com.gooddata.http.client.GoodDataHttpClient.SST_HEADER;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -56,7 +58,7 @@ public class LoginSSTRetrievalStrategyTest {
     public HttpClient httpClient;
 
     @Mock
-    public Log logger;
+    public Logger logger;
 
     public StatusLine statusLine;
 
@@ -76,12 +78,7 @@ public class LoginSSTRetrievalStrategyTest {
     public void obtainSstHeader() throws IOException {
         statusLine = new BasicStatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_OK, "OK");
         final HttpResponse response = new BasicHttpResponse(statusLine);
-        response.setEntity(new StringEntity("--" +
-                "  userLogin\n" +
-                "    profile: /gdc/account/profile/1\n" +
-                "    token: " + SST + "\n" +
-                "    state: /gdc/account/login/1"
-                ));
+        response.setHeader(SST_HEADER, SST);
         when(httpClient.execute(isA(HttpHost.class), isA(HttpPost.class))).thenReturn(response);
 
         assertEquals(SST, sstStrategy.obtainSst(httpClient, host));

@@ -5,7 +5,7 @@
  */
 package com.gooddata.http.client;
 
-import static org.apache.commons.lang.Validate.notNull;
+import static org.apache.commons.lang3.Validate.notNull;
 
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
