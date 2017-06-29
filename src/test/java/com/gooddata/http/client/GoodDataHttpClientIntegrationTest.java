@@ -53,7 +53,7 @@ public class GoodDataHttpClientIntegrationTest {
     private static final String GOODDATA_REALM = "GoodData realm=\"GoodData API\"";
     private static final String TT_COOKIE = "cookie=GDCAuthTT";
 
-    private static final String BODY_401 = "<html><head><title>401 Authorization Required</title></head><body><p>This server could not verify that you are authorized to access the document requested.  Either you supplied the wrong credentials (e.g., bad password), or your browser doesn't understand how to supply the credentials required.Please see <a href=\"http://docs.gooddata.apiary.io/#login\">Authenticating to the GoodData API</a> for details.</p></body></html>";
+    private static final String BODY_401 = "<html><head><title>401 Authorization Required</title></head><body><p>This server could not verify that you are authorized to access the document requested.  Either you supplied the wrong credentials (e.g., bad password), or your browser doesn't understand how to supply the credentials required.Please see <a href=\"https://help.gooddata.com/display/developer/API+Reference#/reference/authentication/log-in\">Authenticating to the GoodData API</a> for details.</p></body></html>";
     private static final String BODY_PROJECTS = "{\"about\":{\"summary\":\"Project Resources\",\"category\":\"Projects\",\"links\":[]}}";
     private static final String BODY_TOKEN_401 = "{\"parameters\":[],\"component\":\"Account::Token\",\"message\":\"/gdc/account/login\"}";
 
