@@ -1,6 +1,15 @@
+script: mvn verify javadoc:javadoc coveralls:report -Pcoverage
+install: true
+branches:
+  only:
+  - master
+  - /\d\.0\.0-RC/
 language: java
 jdk:
-  - oraclejdk7
+  - openjdk8
   - openjdk7
-  - openjdk6
-
+cache:
+  directories:
+  - '$HOME/.m2/repository'
+sudo: false
+dist: trusty
