@@ -1,14 +1,14 @@
 # GoodData HTTP Client [![Build Status](https://travis-ci.org/gooddata/gooddata-http-client.svg?branch=master)](https://travis-ci.org/gooddata/gooddata-http-client) [![Javadocs](http://javadoc.io/badge/com.gooddata/gooddata-http-client.svg)](http://javadoc.io/doc/com.gooddata/gooddata-http-client) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.gooddata/gooddata-http-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.gooddata/gooddata-http-client)
 
 GoodData HTTP Client is an extension of [Apache HTTP Client](http://hc.apache.org/httpcomponents-client-4.3.x/index.html) (former Jakarta Commons).
-This specialized Java client transparently handles [GoodData authentication](https://developer.gooddata.com/api#/introduction/use-cases/log-in)
-so you can focus on writing logic on top of [GoodData API](https://developer.gooddata.com/api).
+This specialized Java client transparently handles [GoodData authentication](https://help.gooddata.com/display/doc/API+Reference#/reference/authentication/log-in)
+so you can focus on writing logic on top of [GoodData API](https://help.gooddata.com/display/doc/API+Reference).
 
 ## Design
 
 ```com.gooddata.http.client.GoodDataHttpClient``` central class implements [org.apache.http.client.HttpClient interface](http://hc.apache.org/httpcomponents-client-4.2.x/httpclient/apidocs/org/apache/http/client/HttpClient.html)
 It allows seamless switch for existing code base currently using ```org.apache.http.client.HttpClient```. Business logic encapsulating
-access to [GoodData API](https://developer.gooddata.com/api) should use ```org.apache.http.client.HttpClient``` interface
+access to [GoodData API](https://help.gooddata.com/display/doc/API+Reference) should use ```org.apache.http.client.HttpClient``` interface
 and keep ```com.gooddata.http.client.GoodDataHttpClient``` inside a factory class. ```com.gooddata.http.client.GoodDataHttpClient``` uses underlying ```org.apache.http.client.HttpClient```.  A HTTP client
 instance can be passed via the constructor.
 
