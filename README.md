@@ -94,6 +94,9 @@ mvn test
 mvn -P at clean verify -DGDC_LOGIN=user@email.com -DGDC_PASSWORD=password [-DGDC_BACKEND=<backend host>]
 ```
 
+### Test coverage
+One can check test coverage report in [coveralls.io](https://coveralls.io/github/gooddata/gooddata-http-client).
+
 ## Notice
 
 GoodData Corporation provides this software "as-is" under conditions
