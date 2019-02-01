@@ -30,8 +30,7 @@ import java.net.URI;
 
 import static com.gooddata.http.client.GoodDataHttpClient.TT_HEADER;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.times;
@@ -41,6 +40,9 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 public class GoodDataHttpClientTest {
+
+    private static final String TT = "cookieTt";
+    private static final String SST = "SST";
 
     private GoodDataHttpClient goodDataHttpClient;
 
@@ -82,7 +84,7 @@ public class GoodDataHttpClientTest {
         okResponse = createResponse(HttpStatus.SC_OK, "<html><head><title>OK</title></head><body></body>", "OK");
 
         ttRefreshedResponse = createResponse(HttpStatus.SC_OK, "OK");
-        ttRefreshedResponse.setHeader(TT_HEADER, "cookieTt");
+        ttRefreshedResponse.setHeader(TT_HEADER, TT);
     }
 
     private HttpResponse createResponse(final int status, final String reasonPhrase) {
@@ -99,7 +101,7 @@ public class GoodDataHttpClientTest {
 
     @Test
     public void execute_sstExpired() throws IOException {
-        when(httpClient.execute(eq(host), any(HttpRequest.class), any(HttpContext.class))) // original requests
+        when(httpClient.execute(eq(host), any(HttpRequest.class), (HttpContext) isNull())) // original requests
                 .thenReturn(ttChallengeResponse)
                 .thenReturn(ttRefreshedResponse)
                 .thenReturn(okResponse);
@@ -108,13 +110,13 @@ public class GoodDataHttpClientTest {
 
         verify(sstStrategy).obtainSst(any(HttpClient.class), any(HttpHost.class));
         verifyNoMoreInteractions(sstStrategy);
-        verify(httpClient, times(2)).execute(eq(host), eq(get), any(HttpContext.class));
-        verify(httpClient, times(3)).execute(eq(host), any(HttpRequest.class), any(HttpContext.class));
+        verify(httpClient, times(2)).execute(eq(host), eq(get), (HttpContext) isNull());
+        verify(httpClient, times(3)).execute(eq(host), any(HttpRequest.class), (HttpContext) isNull());
     }
 
     @Test
     public void execute_unableObtainSst() throws IOException {
-        when(httpClient.execute(eq(host), any(HttpRequest.class), any(HttpContext.class)))
+        when(httpClient.execute(eq(host), any(HttpRequest.class), (HttpContext) isNull()))
                 .thenReturn(ttChallengeResponse)
                 .thenReturn(response401);
 
@@ -123,7 +125,7 @@ public class GoodDataHttpClientTest {
 
     @Test
     public void execute_unableObtainTTafterSuccessfullSstObtained() throws IOException {
-        when(httpClient.execute(eq(host), any(HttpRequest.class), any(HttpContext.class)))
+        when(httpClient.execute(eq(host), any(HttpRequest.class), (HttpContext) isNull()))
                 .thenReturn(ttChallengeResponse)
                 .thenReturn(sstChallengeResponse)
                 .thenReturn(response401);
@@ -133,74 +135,73 @@ public class GoodDataHttpClientTest {
 
     @Test
     public void execute_nonChallenge401() throws IOException {
-        when(httpClient.execute(eq(host), eq(get), any(HttpContext.class)))
+        when(httpClient.execute(eq(host), eq(get), (HttpContext) isNull()))
                 .thenReturn(response401);
 
         assertEquals(response401, goodDataHttpClient.execute(host, get));
 
         verifyZeroInteractions(sstStrategy);
-        verify(httpClient, only()).execute(eq(host), eq(get), any(HttpContext.class));
+        verify(httpClient, only()).execute(eq(host), eq(get), (HttpContext) isNull());
     }
 
-    /**
+    /*
      * No TT or SST refresh needed.
-     * @throws IOException
      */
     @Test
     public void execute_okResponse() throws IOException {
-        when(httpClient.execute(eq(host), eq(get), any(HttpContext.class)))
+        when(httpClient.execute(eq(host), eq(get), (HttpContext) isNull()))
                 .thenReturn(okResponse);
 
         assertEquals(okResponse, goodDataHttpClient.execute(host, get));
 
         verifyZeroInteractions(sstStrategy);
-        verify(httpClient, only()).execute(eq(host), eq(get), any(HttpContext.class));
+        verify(httpClient, only()).execute(eq(host), eq(get), (HttpContext) isNull());
     }
 
     @Test
     public void execute_logoutPath() throws Exception {
         // first let's login
-        when(httpClient.execute(eq(host), any(HttpRequestBase.class), any(HttpContext.class)))
+        when(httpClient.execute(eq(host), any(HttpRequestBase.class), (HttpContext) isNull()))
                 .thenReturn(ttChallengeResponse)
                 .thenReturn(ttRefreshedResponse)
                 .thenReturn(okResponse);
-        when(sstStrategy.obtainSst(httpClient, host)).thenReturn("SST");
+        when(sstStrategy.obtainSst(httpClient, host)).thenReturn(SST);
 
         final String logoutUrl = "/gdc/account/login/1";
         final HttpResponse logoutResponse = goodDataHttpClient.execute(host, new HttpDelete(logoutUrl));
         assertEquals(204, logoutResponse.getStatusLine().getStatusCode());
 
-        verify(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUrl), eq("SST"), eq("cookieTt"));
+        verify(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUrl), eq(SST), eq(TT));
     }
 
     @Test
     public void execute_logoutUri() throws Exception {
         // first let's login
-        when(httpClient.execute(eq(host), any(HttpRequestBase.class), any(HttpContext.class)))
+        when(httpClient.execute(eq(host), any(HttpRequestBase.class), (HttpContext) isNull()))
                 .thenReturn(ttChallengeResponse)
                 .thenReturn(ttRefreshedResponse)
                 .thenReturn(okResponse);
-        when(sstStrategy.obtainSst(httpClient, host)).thenReturn("SST");
+        when(sstStrategy.obtainSst(httpClient, host)).thenReturn(SST);
 
         final String logoutUri = "https://server.com:443/gdc/account/login/1";
         final HttpResponse logoutResponse = goodDataHttpClient.execute(new HttpDelete(URI.create(logoutUri)));
         assertEquals(204, logoutResponse.getStatusLine().getStatusCode());
 
-        verify(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUri), eq("SST"), eq("cookieTt"));
+        verify(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUri), eq(SST), eq(TT));
     }
 
     @Test
     public void execute_logoutFailed() throws Exception {
         // first let's login
-        when(httpClient.execute(eq(host), any(HttpGet.class), any(HttpContext.class)))
+        when(httpClient.execute(eq(host), any(HttpRequestBase.class), (HttpContext) isNull()))
                 .thenReturn(ttChallengeResponse)
                 .thenReturn(ttRefreshedResponse)
                 .thenReturn(okResponse);
-        when(sstStrategy.obtainSst(httpClient, host)).thenReturn("SST");
+        when(sstStrategy.obtainSst(httpClient, host)).thenReturn(SST);
 
         final String logoutUrl = "/gdc/account/login/1";
         doThrow(new GoodDataLogoutException("msg", 400, "bad request"))
-            .when(sstStrategy).logout(eq(httpClient), eq(host), any(String.class), any(String.class), any(String.class));
+            .when(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUrl), eq(SST), eq(TT));
 
         final HttpResponse logoutResponse = goodDataHttpClient.execute(host, new HttpDelete(logoutUrl));
         assertEquals(400, logoutResponse.getStatusLine().getStatusCode());
