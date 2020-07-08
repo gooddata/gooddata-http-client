@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>gooddata-http-client</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.0+java7</version>
     <packaging>jar</packaging>
     <name>${project.artifactId}</name>
     <description>HTTP client with ability to handle GoodData authentication</description>
@@ -34,7 +34,7 @@
         <connection>scm:git:git@github.com:gooddata/gooddata-http-client.git</connection>
         <developerConnection>scm:git:git@github.com:gooddata/gooddata-http-client.git</developerConnection>
         <url>https://github.com/gooddata/gooddata-http-client</url>
-      <tag>HEAD</tag>
+      <tag>gooddata-http-client-1.0.0+java7</tag>
   </scm>
 
     <licenses>
