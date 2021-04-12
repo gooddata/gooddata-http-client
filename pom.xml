@@ -133,6 +133,10 @@
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.2.0</version>
+                <configuration>
+                    <!-- needed to build under JDK9+ since it uses packages in the unnamed module -->
+                    <detectJavaApiLink>false</detectJavaApiLink>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -175,6 +179,13 @@
                         <groupId>org.eluder.coveralls</groupId>
                         <artifactId>coveralls-maven-plugin</artifactId>
                         <version>4.3.0</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>javax.xml.bind</groupId>
+                                <artifactId>jaxb-api</artifactId>
+                                <version>2.3.1</version>
+                            </dependency>
+                        </dependencies>
                     </plugin>
                     <plugin>
                         <groupId>org.jacoco</groupId>
