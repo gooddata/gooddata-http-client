@@ -1,5 +1,5 @@
 /*
- * (C) 2021 GoodData Corporation.
+ * (C) 2022 GoodData Corporation.
  * This source code is licensed under the BSD-style license found in the
  * LICENSE.txt file in the root directory of this source tree.
  */
@@ -9,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-
+@SuppressWarnings("squid:S2699")
 public class SimpleSSTRetrievalStrategyTest {
 
     public static final String TOKEN = "sst token";

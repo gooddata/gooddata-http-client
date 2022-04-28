@@ -1,12 +1,11 @@
 /*
- * (C) 2021 GoodData Corporation.
+ * (C) 2022 GoodData Corporation.
  * This source code is licensed under the BSD-style license found in the
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.logging.Log;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -17,15 +16,16 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.BasicHttpEntity;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 
@@ -53,6 +53,7 @@ public class LoginSSTRetrievalStrategyTest {
     private static final String TT = "xxxtopsecretTT";
 
     private LoginSSTRetrievalStrategy sstStrategy;
+    private AutoCloseable mockClass;
 
     @Mock
     public HttpClient httpClient;
@@ -69,11 +70,15 @@ public class LoginSSTRetrievalStrategyTest {
 
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
+        mockClass = MockitoAnnotations.openMocks(this);
         host = new HttpHost("server.com", 123);
         sstStrategy = new LoginSSTRetrievalStrategy(LOGIN, PASSWORD);
     }
 
+    @After
+    public void tearDown() throws Exception {
+        mockClass.close();
+    }
     @Test
     public void obtainSstHeader() throws IOException {
         statusLine = new BasicStatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_OK, "OK");
