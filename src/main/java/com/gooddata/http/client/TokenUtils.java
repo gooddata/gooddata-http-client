@@ -1,5 +1,5 @@
 /*
- * (C) 2021 GoodData Corporation.
+ * (C) 2022 GoodData Corporation.
  * This source code is licensed under the BSD-style license found in the
  * LICENSE.txt file in the root directory of this source tree.
  */
@@ -16,6 +16,8 @@ import static org.apache.commons.lang3.Validate.notNull;
  * Contains handy methods for working with SST and TT tokens.
  */
 class TokenUtils {
+
+    private TokenUtils() {}
 
     static String extractSST(final HttpResponse response) {
         return extractToken(response, SST_HEADER);

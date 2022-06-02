@@ -1,5 +1,5 @@
 /*
- * (C) 2021 GoodData Corporation.
+ * (C) 2022 GoodData Corporation.
  * This source code is licensed under the BSD-style license found in the
  * LICENSE.txt file in the root directory of this source tree.
  */
@@ -36,6 +36,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings("squid:S2699")
 public class GoodDataHttpClientIntegrationTest {
 
     private static final String GDC_TOKEN_PATH = "/gdc/account/token";

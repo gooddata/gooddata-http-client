@@ -1,5 +1,5 @@
 /*
- * (C) 2021 GoodData Corporation.
+ * (C) 2022 GoodData Corporation.
  * This source code is licensed under the BSD-style license found in the
  * LICENSE.txt file in the root directory of this source tree.
  */
@@ -7,10 +7,8 @@ package com.gooddata.http.client;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;

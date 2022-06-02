@@ -1,5 +1,5 @@
 /*
- * (C) 2021 GoodData Corporation.
+ * (C) 2022 GoodData Corporation.
  * This source code is licensed under the BSD-style license found in the
  * LICENSE.txt file in the root directory of this source tree.
  */
@@ -9,18 +9,11 @@ import static com.gooddata.http.client.TestUtils.createGoodDataClient;
 import static com.gooddata.http.client.TestUtils.getForEntity;
 import static com.gooddata.http.client.TestUtils.logout;
 import static com.gooddata.http.client.TestUtils.performGet;
-import static org.junit.Assert.assertEquals;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -31,6 +24,7 @@ import java.util.regex.Pattern;
  * Acceptance tests. Requires GoodData credentials.<br/>
  * <code>mvn -Pat clean verify -DGDC_LOGIN=user@email.com -DGDC_PASSWORD=password [-DGDC_BACKEND=<backend host>]</code>
  */
+@SuppressWarnings("squid:S2699")
 public class GoodDataHttpClientAT {
 
     private static final String GDC_PROJECTS_PATH = "/gdc/projects";
