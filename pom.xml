@@ -143,7 +143,7 @@
         <plugins>
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.4.0</version>
+                <version>3.4.1</version>
                 <configuration>
                     <!-- needed to build under JDK9+ since it uses packages in the unnamed module -->
                     <detectJavaApiLink>false</detectJavaApiLink>
