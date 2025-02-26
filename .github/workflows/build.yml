@@ -30,7 +30,7 @@ jobs:
       run: |
         mvn verify javadoc:javadoc jacoco:report -Pcoverage -B -V
     - name: Upload coverage report to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v5
       with:
         file: ./**/target/site/jacoco/jacoco.xml
         name: codecov
