@@ -35,3 +35,4 @@ jobs:
         file: ./**/target/site/jacoco/jacoco.xml
         name: codecov
         fail_ci_if_error: true
+        verbose: true
