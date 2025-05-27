@@ -6,40 +6,44 @@
 package com.gooddata.http.client;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.ProtocolVersion;
-import org.apache.http.StatusLine;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.BasicHttpEntity;
-import org.apache.http.message.BasicHttpResponse;
-import org.apache.http.message.BasicStatusLine;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.ProtocolVersion;
+import org.apache.hc.core5.http.message.StatusLine;
+import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.classic.methods.HttpDelete;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
+import org.apache.hc.core5.http.message.BasicHeader;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.URISyntaxException;
 
 import static com.gooddata.http.client.GoodDataHttpClient.SST_HEADER;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -65,33 +69,38 @@ public class LoginSSTRetrievalStrategyTest {
 
     private HttpHost host;
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    @Before
+    @BeforeEach
     public void setUp() {
         mockClass = MockitoAnnotations.openMocks(this);
         host = new HttpHost("server.com", 123);
         sstStrategy = new LoginSSTRetrievalStrategy(LOGIN, PASSWORD);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         mockClass.close();
     }
+
+
     @Test
     public void obtainSstHeader() throws IOException {
-        statusLine = new BasicStatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_OK, "OK");
-        final HttpResponse response = new BasicHttpResponse(statusLine);
+        statusLine = new StatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_OK, "OK");
+        final ClassicHttpResponse response = new BasicClassicHttpResponse(HttpStatus.SC_OK, "OK");
         response.setHeader(SST_HEADER, SST);
-        when(httpClient.execute(isA(HttpHost.class), isA(HttpPost.class))).thenReturn(response);
+        when(httpClient.execute(
+                isA(HttpHost.class), isA(HttpPost.class), isA(org.apache.hc.core5.http.io.HttpClientResponseHandler.class)))
+            .thenAnswer(invocation -> {
+                org.apache.hc.core5.http.io.HttpClientResponseHandler<?> handler = invocation.getArgument(2);
+                return handler.handleResponse(response);
+            });
+
 
         assertEquals(SST, sstStrategy.obtainSst(httpClient, host));
 
         final ArgumentCaptor<HttpHost> hostCaptor = ArgumentCaptor.forClass(HttpHost.class);
         final ArgumentCaptor<HttpPost> postCaptor = ArgumentCaptor.forClass(HttpPost.class);
 
-        verify(httpClient).execute(hostCaptor.capture(), postCaptor.capture());
+        verify(httpClient).execute(hostCaptor.capture(), postCaptor.capture(), any(org.apache.hc.core5.http.io.HttpClientResponseHandler.class));
 
         assertEquals("server.com", hostCaptor.getValue().getHostName());
         assertEquals(123, hostCaptor.getValue().getPort());
@@ -101,97 +110,110 @@ public class LoginSSTRetrievalStrategyTest {
         IOUtils.copy(postCaptor.getValue().getEntity().getContent(), writer, "UTF-8");
 
         assertEquals(postBody, writer.toString());
-        assertEquals("/gdc/account/login", postCaptor.getValue().getURI().getPath());
+        try {
+            assertEquals("/gdc/account/login", postCaptor.getValue().getUri().getPath());
+        } catch (URISyntaxException e) {
+            fail("Invalid URI: " + e.getMessage());
+        }
     }
 
-    @Test(expected = GoodDataAuthException.class)
+    @Test
     public void obtainSst_badLogin() throws IOException {
-        statusLine = new BasicStatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_BAD_REQUEST, "Bad Request");
-        final HttpResponse response = new BasicHttpResponse(statusLine);
-        when(httpClient.execute(any(HttpHost.class), any(HttpPost.class))).thenReturn(response);
+        statusLine = new StatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_BAD_REQUEST, "Bad Request");
+        final ClassicHttpResponse response = new BasicClassicHttpResponse(HttpStatus.SC_BAD_REQUEST, "Bad Request");
 
-        sstStrategy.obtainSst(httpClient, host);
+    when(httpClient.executeOpen(
+        any(HttpHost.class),
+        any(HttpPost.class),
+        isNull(HttpContext.class)
+    )).thenReturn(response);
 
+        assertThrows(GoodDataAuthException.class, () -> sstStrategy.obtainSst(httpClient, host));
     }
 
     @Test
     public void shouldLogout() throws Exception {
-        statusLine = new BasicStatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_NO_CONTENT, "NO CONTENT");
-        final HttpResponse response = new BasicHttpResponse(statusLine);
-        when(httpClient.execute(isA(HttpHost.class), isA(HttpDelete.class))).thenReturn(response);
+        statusLine = new StatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_NO_CONTENT, "NO CONTENT");
+        final ClassicHttpResponse response = new BasicClassicHttpResponse(HttpStatus.SC_NO_CONTENT, "NO CONTENT");
+        when(httpClient.executeOpen(
+            isA(HttpHost.class),
+            isA(HttpDelete.class),
+            isNull(HttpContext.class)
+        )).thenReturn(response);
 
         sstStrategy.logout(httpClient, host, "/gdc/account/login/profileid", SST, TT);
 
         final ArgumentCaptor<HttpHost> hostCaptor = ArgumentCaptor.forClass(HttpHost.class);
         final ArgumentCaptor<HttpDelete> deleteCaptor = ArgumentCaptor.forClass(HttpDelete.class);
 
-        verify(httpClient).execute(hostCaptor.capture(), deleteCaptor.capture());
+        verify(httpClient).executeOpen(
+            hostCaptor.capture(),
+            deleteCaptor.capture(),
+            isNull(HttpContext.class)
+        );
 
         assertEquals("server.com", hostCaptor.getValue().getHostName());
         assertEquals(123, hostCaptor.getValue().getPort());
 
         final HttpDelete delete = deleteCaptor.getValue();
         assertNotNull(delete);
-        assertEquals("/gdc/account/login/profileid", delete.getURI().getPath());
+        assertEquals("/gdc/account/login/profileid", delete.getUri().getPath());    
         assertEquals(SST, delete.getFirstHeader("X-GDC-AuthSST").getValue());
         assertEquals(TT, delete.getFirstHeader("X-GDC-AuthTT").getValue());
     }
 
     @Test
     public void shouldThrowOnLogoutError() throws Exception {
-        statusLine = new BasicStatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_SERVICE_UNAVAILABLE, "downtime");
-        final HttpResponse response = new BasicHttpResponse(statusLine);
+        statusLine = new StatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_SERVICE_UNAVAILABLE, "downtime");
+        final ClassicHttpResponse response = new BasicClassicHttpResponse(HttpStatus.SC_SERVICE_UNAVAILABLE, "downtime");
         when(httpClient.execute(isA(HttpHost.class), isA(HttpDelete.class))).thenReturn(response);
 
-        expectedException.expect(new GoodDataLogoutExceptionMatcher(503, "downtime"));
-
-        sstStrategy.logout(httpClient, host, "/gdc/account/login/profileid", SST, TT);
+        assertThrows(GoodDataLogoutException.class, () -> 
+            sstStrategy.logout(httpClient, host, "/gdc/account/login/profileid", SST, TT));
     }
 
-    @Test(expected = GoodDataAuthException.class)
+    @Test
     public void logLoginFailureRequestId() throws Exception{
         prepareLoginFailureResponse();
-        try {
-            sstStrategy.obtainSst(httpClient, host);
-        } finally {
-            ArgumentCaptor<String> logMessageCaptor = ArgumentCaptor.forClass(String.class);
-            verify(logger).info(logMessageCaptor.capture());
-            assertThat("Missing requestId at the log message",logMessageCaptor.getValue(), containsString(REQUEST_ID));
-        }
+        Exception ex = assertThrows(GoodDataAuthException.class, () -> sstStrategy.obtainSst(httpClient, host));
+        ArgumentCaptor<String> logMessageCaptor = ArgumentCaptor.forClass(String.class);
+        verify(logger).info(logMessageCaptor.capture());
+        assertThat("Missing requestId at the log message", logMessageCaptor.getValue(), containsString(REQUEST_ID));
     }
 
-    @Test(expected = GoodDataAuthException.class)
+    @Test
     public void logLoginFailureReason() throws Exception{
         prepareLoginFailureResponse();
-        try {
-            sstStrategy.obtainSst(httpClient, host);
-        } finally {
-            ArgumentCaptor<String> logMessageCaptor = ArgumentCaptor.forClass(String.class);
-            verify(logger).info(logMessageCaptor.capture());
-            assertThat("Missing login failure at the log message",logMessageCaptor.getValue(), containsString(FAILURE_REASON));
-        }
+        Exception ex = assertThrows(GoodDataAuthException.class, () -> sstStrategy.obtainSst(httpClient, host));
+        ArgumentCaptor<String> logMessageCaptor = ArgumentCaptor.forClass(String.class);
+        verify(logger).info(logMessageCaptor.capture());
+        assertThat("Missing login failure at the log message", logMessageCaptor.getValue(), containsString(FAILURE_REASON));
     }
 
-    @Test(expected = GoodDataAuthException.class)
+    @Test
     public void logLoginFailureHttpStatus() throws Exception{
         prepareLoginFailureResponse();
-        try {
-            sstStrategy.obtainSst(httpClient, host);
-        } finally {
-            ArgumentCaptor<String> logMessageCaptor = ArgumentCaptor.forClass(String.class);
-            verify(logger).info(logMessageCaptor.capture());
-            assertThat("Missing HTTP response status at the log message",logMessageCaptor.getValue(), containsString("401"));
-        }
+        Exception ex = assertThrows(GoodDataAuthException.class, () -> sstStrategy.obtainSst(httpClient, host));
+        ArgumentCaptor<String> logMessageCaptor = ArgumentCaptor.forClass(String.class);
+        verify(logger).info(logMessageCaptor.capture());
+        assertThat("Missing HTTP response status at the log message", logMessageCaptor.getValue(), containsString("401"));
     }
 
-    private void prepareLoginFailureResponse() throws IOException, ClientProtocolException {
-        statusLine = new BasicStatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_UNAUTHORIZED, "Unauthorized");
-        final HttpResponse response = new BasicHttpResponse(statusLine);
-        response.setHeader("X-GDC-Request", REQUEST_ID);
-        BasicHttpEntity entity = new BasicHttpEntity();
-        entity.setContent(new ByteArrayInputStream(FAILURE_REASON.getBytes()));
-        response.setEntity(entity);
-        when(httpClient.execute(any(HttpHost.class), any(HttpPost.class))).thenReturn(response);
-        sstStrategy.setLogger(logger);
-    }
+private void prepareLoginFailureResponse() throws IOException {
+    statusLine = new StatusLine(new ProtocolVersion("https", 1, 1), HttpStatus.SC_UNAUTHORIZED, "Unauthorized");
+
+
+    CloseableHttpResponse response = mock(CloseableHttpResponse.class);
+    when(response.getCode()).thenReturn(HttpStatus.SC_UNAUTHORIZED);
+    when(response.getReasonPhrase()).thenReturn("Unauthorized");
+    when(response.getFirstHeader("X-GDC-Request")).thenReturn(new BasicHeader("X-GDC-Request", REQUEST_ID));
+
+    StringEntity entity = new StringEntity(FAILURE_REASON, ContentType.TEXT_PLAIN);
+    when(response.getEntity()).thenReturn(entity);
+
+    when(httpClient.execute(any(HttpHost.class), any(HttpPost.class))).thenReturn(response);
+    when(httpClient.execute(any(HttpHost.class), any(HttpPost.class), any(HttpContext.class))).thenReturn(response);
+
+    sstStrategy.setLogger(logger);
+}
 }

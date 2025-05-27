@@ -5,8 +5,9 @@
  */
 package com.gooddata.http.client;
 
-import org.apache.http.Header;
-import org.apache.http.HttpResponse;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+
 
 import static com.gooddata.http.client.GoodDataHttpClient.SST_HEADER;
 import static com.gooddata.http.client.GoodDataHttpClient.TT_HEADER;
@@ -19,15 +20,15 @@ class TokenUtils {
 
     private TokenUtils() {}
 
-    static String extractSST(final HttpResponse response) {
+    static String extractSST(final ClassicHttpResponse response) {
         return extractToken(response, SST_HEADER);
     }
 
-    static String extractTT(final HttpResponse response) {
+    static String extractTT(final ClassicHttpResponse response) {
         return extractToken(response, TT_HEADER);
     }
 
-    private static String extractToken(final HttpResponse response, final String headerName) {
+    private static String extractToken(final ClassicHttpResponse response, final String headerName) {
         notNull(response, "response can't be null");
         notNull(headerName, "headerName can't be null");
         final Header header = response.getFirstHeader(headerName);

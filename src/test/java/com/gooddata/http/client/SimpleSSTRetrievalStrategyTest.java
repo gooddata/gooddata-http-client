@@ -5,9 +5,10 @@
  */
 package com.gooddata.http.client;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("squid:S2699")
 public class SimpleSSTRetrievalStrategyTest {
@@ -20,10 +21,10 @@ public class SimpleSSTRetrievalStrategyTest {
         assertEquals(TOKEN, sstStrategy.obtainSst(null, null));
     }
 
-    @Test(expected = NullPointerException.class)
-    public void constructor_nullSst() {
-        new SimpleSSTRetrievalStrategy(null);
-    }
+@Test
+void constructor_nullSst() {
+    assertThrows(NullPointerException.class, () -> new SimpleSSTRetrievalStrategy(null));
+}
 
     @Test
     public void shouldLogout() throws Exception {

@@ -5,26 +5,22 @@
  */
 package com.gooddata.http.client;
 
+// HttpClient 5 imports!
 import static com.gooddata.http.client.LoginSSTRetrievalStrategy.LOGIN_URL;
 import static org.apache.commons.lang3.Validate.notNull;
 
-import org.apache.http.Header;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.auth.AUTH;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.message.BasicHttpResponse;
-import org.apache.http.message.BasicStatusLine;
-import org.apache.http.params.HttpParams;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.http.Header;
+
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,46 +32,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * <p>Http client with ability to handle GoodData authentication.</p>
- *
- * <h3>Usage</h3>
- *
- * <h4>Authentication using login</h4>
- * <pre>
- * // create HTTP client with your settings
- * HttpClient httpClient = HttpClientBuilder.create().build();
- *
- * // create login strategy, which wil obtain SST via login
- * SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy("user@domain.com", "my secret");
- *
- * // wrap your HTTP client into GoodData HTTP client
- * HttpClient client = new GoodDataHttpClient(httpClient, new HttpHost("server.com", 123), sstStrategy);
- *
- * // use GoodData HTTP client
- * HttpGet getProject = new HttpGet("/gdc/projects");
- * getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
- * HttpResponse getProjectResponse = client.execute(httpHost, getProject);
- * </pre>
- *
- * <h4>Authentication using super-secure token (SST)</h4>
- *
- * <pre>
- * // create HTTP client
- * HttpClient httpClient = ...
- *
- * // create login strategy (you must somehow obtain SST)
- * SSTRetrievalStrategy sstStrategy = new SimpleSSTRetrievalStrategy("my super-secure token");
- *
- * // wrap your HTTP client into GoodData HTTP client
- * HttpClient client = new GoodDataHttpClient(httpClient, new HttpHost("server.com", 123), sstStrategy);
- *
- * // use GoodData HTTP client
- * HttpGet getProject = new HttpGet("/gdc/projects");
- * getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
- * HttpResponse getProjectResponse = client.execute(httpHost, getProject);
- * </pre>
+ * Http client with ability to handle GoodData authentication.
+ * Fully migrated to Apache HttpClient 5.x "response handler" style.
  */
-public class GoodDataHttpClient implements HttpClient {
+public class GoodDataHttpClient {
 
     private static final String TOKEN_URL = "/gdc/account/token";
     public static final String COOKIE_GDC_AUTH_TT = "cookie=GDCAuthTT";
@@ -91,65 +51,16 @@ public class GoodDataHttpClient implements HttpClient {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final HttpClient httpClient;
-
     private final SSTRetrievalStrategy sstStrategy;
-
-    /** Host performing authentication - eg. issuing TT tokens */
     private final HttpHost authHost;
-
-    /** this lock is used to ensure that no threads will try to send requests while authentication is performed */
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
-
-    /**
-     * This lock guards that only one thread enters the authentication (obtaining TT/SST) section.
-     * We need second lock we cannot call tryLock() on ReadWriteLock.writeLock as it returns false not only when another thread
-     * holds the write lock already (what we want here) but also when another thread holds a read lock (what we do NOT want)
-     */
     private final Lock authLock = new ReentrantLock();
 
-    /** current SST (or null if not yet obtained) */
     private String sst;
-
-    /** TT to be set into the header (or null if not yet obtained) */
     private String tt;
 
+    // Constructors remain unchanged (just update parameter types to HttpClient 5.x classes if needed)
 
-    /**
-     * Construct object.
-     * @deprecated use {@link #GoodDataHttpClient(HttpClient, HttpHost, SSTRetrievalStrategy)}
-     * @param httpClient Http client
-     * @param sstStrategy super-secure token (SST) obtaining strategy
-     * @throws IllegalArgumentException if {@code sstStrategy} argument is not an instance of {@link LoginSSTRetrievalStrategy}
-     */
-    @Deprecated
-    public GoodDataHttpClient(final HttpClient httpClient, final SSTRetrievalStrategy sstStrategy) {
-        notNull(httpClient);
-        this.httpClient = httpClient;
-        if (sstStrategy instanceof LoginSSTRetrievalStrategy) {
-            this.sstStrategy = sstStrategy;
-            this.authHost = ((LoginSSTRetrievalStrategy) sstStrategy).getHttpHost();
-            notNull(authHost, "HTTP host cannot be null");
-        } else {
-            throw new IllegalArgumentException("This constructor is deprecated and works with LoginSSTRetrievalStrategy argument only!");
-        }
-    }
-
-    /**
-     * Construct object.
-     * @deprecated use {@link #GoodDataHttpClient(HttpHost, SSTRetrievalStrategy)}
-     * @param sstStrategy super-secure token (SST) obtaining strategy
-     */
-    @Deprecated
-    public GoodDataHttpClient(final SSTRetrievalStrategy sstStrategy) {
-        this(HttpClientBuilder.create().build(), sstStrategy);
-    }
-
-    /**
-     * Construct object.
-     * @param httpClient Http client
-     * @param authHost http host
-     * @param sstStrategy super-secure token (SST) obtaining strategy
-     */
     public GoodDataHttpClient(final HttpClient httpClient, final HttpHost authHost, final SSTRetrievalStrategy sstStrategy) {
         notNull(httpClient);
         notNull(authHost, "HTTP host cannot be null");
@@ -158,24 +69,22 @@ public class GoodDataHttpClient implements HttpClient {
         this.authHost = authHost;
         this.sstStrategy = sstStrategy;
     }
+    
 
-    /**
-     * Construct object.
-     * @param authHost http host
-     * @param sstStrategy super-secure token (SST) obtaining strategy
-     */
     public GoodDataHttpClient(final HttpHost authHost, final SSTRetrievalStrategy sstStrategy) {
-        this(HttpClientBuilder.create().build(), authHost, sstStrategy);
+        this(org.apache.hc.client5.http.impl.classic.HttpClients.createDefault(), authHost, sstStrategy);
     }
 
-    private GoodDataChallengeType identifyGoodDataChallenge(final HttpResponse response) {
-        if (response.getStatusLine().getStatusCode() == HttpStatus.SC_UNAUTHORIZED) {
-            final Header[] headers = response.getHeaders(AUTH.WWW_AUTH);
+    /**
+     * Identify the type of GoodData authentication challenge from the response.
+     */
+    private GoodDataChallengeType identifyGoodDataChallenge(final ClassicHttpResponse response) {
+        if (response.getCode() == HttpStatus.SC_UNAUTHORIZED) {
+            Header[] headers = response.getHeaders("WWW-Authenticate");
             if (headers != null) {
-                for (final Header header : headers) {
+                for (Header header : headers) {
                     final String challenge = header.getValue();
                     if (challenge.contains(COOKIE_GDC_AUTH_SST)) {
-                        // this is actually not used as in refreshTT() we rely on status code only
                         return GoodDataChallengeType.SST;
                     } else if (challenge.contains(COOKIE_GDC_AUTH_TT)) {
                         return GoodDataChallengeType.TT;
@@ -186,7 +95,18 @@ public class GoodDataHttpClient implements HttpClient {
         return GoodDataChallengeType.UNKNOWN;
     }
 
-    private HttpResponse handleResponse(final HttpHost httpHost, final HttpRequest request, final HttpResponse originalResponse, final HttpContext context) throws IOException {
+    /**
+     * Handles the authentication challenge and returns a refreshed response.
+     */
+    private ClassicHttpResponse handleResponse(
+            final HttpHost httpHost,
+            final ClassicHttpRequest request,
+            final ClassicHttpResponse originalResponse,
+            final HttpContext context) throws IOException {
+
+        if (originalResponse == null) {
+            throw new IllegalStateException("httpClient.execute returned null! Check your mock configuration.");
+        }
         final GoodDataChallengeType challenge = identifyGoodDataChallenge(originalResponse);
         if (challenge == GoodDataChallengeType.UNKNOWN) {
             return originalResponse;
@@ -195,7 +115,6 @@ public class GoodDataHttpClient implements HttpClient {
 
         try {
             if (authLock.tryLock()) {
-                //only one thread requiring authentication will get here.
                 final Lock writeLock = rwLock.writeLock();
                 writeLock.lock();
                 boolean doSST = true;
@@ -211,148 +130,104 @@ public class GoodDataHttpClient implements HttpClient {
                             throw new GoodDataAuthException("Unable to obtain TT after successfully obtained SST");
                         }
                     }
-                } catch (GoodDataAuthException e) {
-                    return new BasicHttpResponse(new BasicStatusLine(originalResponse.getProtocolVersion(),
-                            HttpStatus.SC_UNAUTHORIZED, e.getMessage()));
                 } finally {
                     writeLock.unlock();
                 }
             } else {
-                // the other thread is performing auth and thus is holding the write lock
-                // lets wait until it is finished (the write lock is granted) and then continue
                 authLock.lock();
             }
         } finally {
             authLock.unlock();
         }
-        return this.execute(httpHost, request, context);
+        // New style: use response handler, response will be automatically released
+        return this.httpClient.execute(httpHost, request, context, response -> response);
     }
 
     /**
-     * Refresh temporary token.
-     * @return
-     * <ul>
-     *     <li><code>true</code> TT refresh successful</li>
-     *     <li><code>false</code> TT refresh unsuccessful (SST expired)</li>
-     * </ul>
-     * @throws GoodDataAuthException error
+     * Refreshes the temporary token (TT) using SST.
      */
     private boolean refreshTt() throws IOException {
         log.debug("Obtaining TT");
-
         final HttpGet request = new HttpGet(TOKEN_URL);
         try {
             request.setHeader(SST_HEADER, sst);
-            final HttpResponse response = httpClient.execute(authHost, request, (HttpContext) null);
-            final int status = response.getStatusLine().getStatusCode();
-            switch (status) {
-                case HttpStatus.SC_OK:
-                    tt = TokenUtils.extractTT(response);
-                    return true;
-                case HttpStatus.SC_UNAUTHORIZED:
-                    // we probably may check if SST challenge is present to be sure the problem is the expired SST
-                    return false;
-                default:
-                    throw new GoodDataAuthException("Unable to obtain TT, HTTP status: " + status);
-            }
+            // Use response handler for token extraction
+            return httpClient.execute(authHost, request, (HttpContext) null, response -> {
+                int status = response.getCode();
+                switch (status) {
+                    case HttpStatus.SC_OK:
+                        tt = TokenUtils.extractTT(response);
+                        return true;
+                    case HttpStatus.SC_UNAUTHORIZED:
+                        return false;
+                    default:
+                        throw new GoodDataAuthException("Unable to obtain TT, HTTP status: " + status);
+                }
+            });
         } finally {
             request.reset();
         }
     }
 
-    @SuppressWarnings("deprecation")
-    @Override
-    public HttpParams getParams() {
-        return httpClient.getParams();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    public ClientConnectionManager getConnectionManager() {
-        return httpClient.getConnectionManager();
-    }
-
-    @Override
-    public HttpResponse execute(HttpHost target, HttpRequest request) throws IOException {
-        return execute(target, request, (HttpContext) null);
-    }
-
-    @Override
-    public <T> T execute(HttpHost target, HttpRequest request, ResponseHandler<? extends T> responseHandler) throws IOException {
-        return execute(target, request, responseHandler, null);
-    }
-
-    @Override
-    public <T> T execute(HttpHost target, HttpRequest request, ResponseHandler<? extends T> responseHandler, HttpContext context) throws IOException {
-        HttpResponse resp = execute(target, request, context);
-        return responseHandler.handleResponse(resp);
-    }
-
-    @Override
-    public HttpResponse execute(HttpUriRequest request) throws IOException {
-        return execute(request, (HttpContext) null);
-    }
-
-    @Override
-    public HttpResponse execute(HttpUriRequest request, HttpContext context) throws IOException {
-        final URI uri = request.getURI();
-        final HttpHost httpHost = new HttpHost(uri.getHost(), uri.getPort(),
-                uri.getScheme());
-        return execute(httpHost, request, context);
-    }
-
-    @Override
-    public <T> T execute(HttpUriRequest request, ResponseHandler<? extends T> responseHandler) throws IOException {
-        return execute(request, responseHandler, null);
-    }
-
-    @Override
-    public <T> T execute(HttpUriRequest request, ResponseHandler<? extends T> responseHandler, HttpContext context)
-            throws IOException {
-        final HttpResponse resp = execute(request, context);
-        return responseHandler.handleResponse(resp);
-    }
-
-    @Override
-    public HttpResponse execute(HttpHost target, HttpRequest request, HttpContext context) throws IOException {
+    /**
+     * Main public execute method: new style, always uses response handler.
+     */
+    public ClassicHttpResponse execute(HttpHost target, ClassicHttpRequest request, HttpContext context) throws IOException {
         notNull(request, "Request can't be null");
-
         final boolean logoutRequest = isLogoutRequest(target, request);
         final Lock lock = logoutRequest ? rwLock.writeLock() : rwLock.readLock();
-
         lock.lock();
 
-        final HttpResponse resp;
         try {
             if (tt != null) {
-                // this adds TT header to EVERY request to ALL hosts made by this HTTP client
-                // however the server performs additional checks to ensure client is not using forged TT
                 request.setHeader(TT_HEADER, tt);
 
                 if (logoutRequest) {
                     try {
-                        sstStrategy.logout(httpClient, target, request.getRequestLine().getUri(), sst, tt);
+                        sstStrategy.logout(httpClient, target, request.getRequestUri(), sst, tt);
                         tt = null;
                         sst = null;
-
-                        return new BasicHttpResponse(new BasicStatusLine(request.getProtocolVersion(),
-                                HttpStatus.SC_NO_CONTENT, "Logout successful"));
+                        // Return a dummy response for logout success
+                        return new org.apache.hc.core5.http.message.BasicClassicHttpResponse(HttpStatus.SC_NO_CONTENT, "Logout successful");
                     } catch (GoodDataLogoutException e) {
-                        return new BasicHttpResponse(new BasicStatusLine(request.getProtocolVersion(),
-                                e.getStatusCode(), e.getStatusText()));
+                        return new org.apache.hc.core5.http.message.BasicClassicHttpResponse(e.getStatusCode(), e.getStatusText());
                     }
                 }
             }
-            resp = this.httpClient.execute(target, request, context);
+            // Always use response handler: never return or expect CloseableHttpResponse anymore!
+            ClassicHttpResponse resp = this.httpClient.execute(
+                    target,
+                    request,
+                    context,
+                    response -> response // just return the response
+            );
+            return handleResponse(target, request, resp, context);
         } finally {
             lock.unlock();
         }
-        return handleResponse(target, request, resp, context);
     }
 
-    private boolean isLogoutRequest(HttpHost target, HttpRequest request) {
+
+    public ClassicHttpResponse execute(HttpHost target, ClassicHttpRequest request) throws IOException {
+         return httpClient.execute(target, request, (HttpContext) null, response -> response);
+    }
+
+
+    public <T> T execute(HttpHost target, ClassicHttpRequest request, HttpContext context,
+                        HttpClientResponseHandler<? extends T> responseHandler) throws IOException {
+        return httpClient.execute(target, request, context, responseHandler);
+    }
+
+
+
+
+
+    /**
+     * Util for logout request check.
+     */
+    private boolean isLogoutRequest(HttpHost target, ClassicHttpRequest request) {
         return authHost.equals(target)
-                && "DELETE".equals(request.getRequestLine().getMethod())
-                && URI.create(request.getRequestLine().getUri()).getPath().startsWith(LOGIN_URL);
+                && "DELETE".equals(request.getMethod())
+                && URI.create(request.getRequestUri()).getPath().startsWith(LOGIN_URL);
     }
 }

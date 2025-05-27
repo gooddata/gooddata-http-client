@@ -7,7 +7,7 @@ package com.gooddata.http.client;
 
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
-import org.hamcrest.Matcher;
+//import org.hamcrest.Matcher;
 
 public class GoodDataLogoutExceptionMatcher extends BaseMatcher<GoodDataLogoutException> {
 
