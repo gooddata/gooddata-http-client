@@ -7,16 +7,11 @@ package com.gooddata.http.client;
 
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.ClassicHttpRequest;
-import org.apache.hc.core5.http.ClassicHttpResponse;
-import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
-import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.core5.http.message.BasicHeader;
-
 
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.junit.jupiter.api.AfterEach;
@@ -29,20 +24,14 @@ import org.mockito.stubbing.Answer;
 import java.io.IOException;
 import java.net.URI;
 
-
-import static com.gooddata.http.client.GoodDataHttpClient.TT_HEADER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.only;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import org.apache.hc.core5.http.Header;
 
 
 public class GoodDataHttpClientTest {
@@ -89,38 +78,6 @@ public class GoodDataHttpClientTest {
         when(ttChallengeResponse.getCode()).thenReturn(401);
         when(ttRefreshedResponse.getCode()).thenReturn(200);
         when(okResponse.getCode()).thenReturn(200);
-
-        /* 
-        // ttChallengeResponse
-        ttChallengeResponse = mock(CloseableHttpResponse.class);
-        when(ttChallengeResponse.getCode()).thenReturn(HttpStatus.SC_UNAUTHORIZED);
-        when(ttChallengeResponse.getReasonPhrase()).thenReturn("Unauthorized");
-        when(ttChallengeResponse.getHeaders("WWW-Authenticate"))
-            .thenReturn(new Header[] { new BasicHeader("WWW-Authenticate", "GoodData realm=\"GoodData API\" cookie=GDCAuthTT") });
-
-        // sstChallengeResponse
-        sstChallengeResponse = mock(CloseableHttpResponse.class);
-        when(sstChallengeResponse.getCode()).thenReturn(HttpStatus.SC_UNAUTHORIZED);
-        when(sstChallengeResponse.getReasonPhrase()).thenReturn("Unauthorized");
-        when(sstChallengeResponse.getHeaders("WWW-Authenticate"))
-            .thenReturn(new Header[] { new BasicHeader("WWW-Authenticate", "GoodData realm=\"GoodData API\" cookie=GDCAuthSST") });
-
-        // response401
-        response401 = mock(CloseableHttpResponse.class);
-        when(response401.getCode()).thenReturn(HttpStatus.SC_UNAUTHORIZED);
-        when(response401.getReasonPhrase()).thenReturn("Unauthorized");
-
-        // okResponse
-        okResponse = mock(CloseableHttpResponse.class);
-        when(okResponse.getCode()).thenReturn(HttpStatus.SC_OK);
-        when(okResponse.getReasonPhrase()).thenReturn("OK");
-
-        // ttRefreshedResponse
-        ttRefreshedResponse = mock(CloseableHttpResponse.class);
-        when(ttRefreshedResponse.getCode()).thenReturn(HttpStatus.SC_OK);
-        when(ttRefreshedResponse.getReasonPhrase()).thenReturn("OK");
-        when(ttRefreshedResponse.getFirstHeader(TT_HEADER)).thenReturn(new BasicHeader(TT_HEADER, TT));
-*/
     }
 
     @AfterEach
@@ -194,7 +151,7 @@ public class GoodDataHttpClientTest {
                     } else if (count == 2) {
                         return handler.handleResponse(sstChallengeResponse); // 401
                     } else {
-                        return handler.handleResponse(response401); // финальный 401
+                        return handler.handleResponse(response401); // 401
                     }
                 }
             });

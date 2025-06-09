@@ -217,11 +217,6 @@ public class GoodDataHttpClient {
                         HttpClientResponseHandler<? extends T> responseHandler) throws IOException {
         return httpClient.execute(target, request, context, responseHandler);
     }
-
-
-
-
-
     /**
      * Util for logout request check.
      */

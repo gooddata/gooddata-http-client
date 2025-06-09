@@ -109,10 +109,6 @@ public class GoodDataHttpClientIntegrationTest {
         performGet(client, jadlerHost, GDC_PROJECTS_PATH, HttpStatus.SC_UNAUTHORIZED);
     });
 
-
-    //assertTrue(thrown.getCause() instanceof IOException);
-    //assertTrue(thrown.getCause().getMessage().contains("Failed to obtain SST"));
-
     assertTrue(thrown.getMessage().contains("Failed to obtain SST"));
     }
 
@@ -159,7 +155,7 @@ public class GoodDataHttpClientIntegrationTest {
 
 
 
-            // 1. /gdc/projects2 WITH TT_HEADER=TT2 --> 200 OK 
+        // 1. /gdc/projects2 WITH TT_HEADER=TT2 --> 200 OK 
         onRequest()
             .havingMethodEqualTo("GET")
             .havingPathEqualTo(GDC_PROJECTS2_PATH)
@@ -173,9 +169,6 @@ public class GoodDataHttpClientIntegrationTest {
                         .build();
             });
 
-
-        // 1. /gdc/projects2 WITH TT_HEADER=TT2 --> 200 OK (this is the "fresh" TT)
-       // mock200OnPath(GDC_PROJECTS2_PATH, "TT2");
 
         // 2. /gdc/projects2 WITH TT_HEADER=TT1 --> 401 Unauthorized (expired TT)
         mock401OnPath(GDC_PROJECTS2_PATH, "TT1");
@@ -230,10 +223,7 @@ public class GoodDataHttpClientIntegrationTest {
                 }
             });
 
-        // 5. Simulate 401 on /gdc/projects to trigger TT refresh
-       // mock401OnProjects();
-
-        // 6. Token mocks and login mocks as before
+        // 5. Token mocks and login mocks as before
         mock401OnToken();
         respond200OnToken(
                 mock200OnToken("TT1").thenRespond(),
@@ -315,9 +305,6 @@ public class GoodDataHttpClientIntegrationTest {
             .respond()
             .withStatus(302)
             .withHeader("Location", GDC_PROJECTS_PATH);
-        
-        //mock401OnProjects();
-        //mock200OnProjects();
 
         onRequest()
             .havingMethodEqualTo("GET")
@@ -412,21 +399,8 @@ public class GoodDataHttpClientIntegrationTest {
         mock401OnPath(GDC_PROJECTS_PATH, null);
     }
 
-/* origin
-    private static void mock401OnPath(String url, String tt) {
-        requestOnPath(url, tt)
-            .respond()
-                .withStatus(401)
-                .withHeader(WWW_AUTHENTICATE_HEADER, GOODDATA_REALM + " " + TT_COOKIE)
-                .withBody(BODY_401)
-                .withEncoding(CHARSET)
-                .withContentType(CONTENT_TYPE_JSON_UTF);
-    }
-*/
-
     private static void mock401OnPath(String url, String tt) {
         if (tt == null) {
-            // Без TT_HEADER
             onRequest()
                 .havingMethodEqualTo("GET")
                 .havingPathEqualTo(url)
@@ -478,16 +452,6 @@ public class GoodDataHttpClientIntegrationTest {
         mock200OnPath(GDC_PROJECTS_PATH, tt);
     }
 
-/* original  
-    private static void mock200OnPath(String url, String tt) {
-       requestOnPath(url, tt)
-            .respond()
-                .withStatus(200)
-                .withBody(BODY_PROJECTS)
-                .withEncoding(CHARSET)
-                .withContentType(CONTENT_TYPE_JSON_UTF);
-    }
-*/
 
     private static void mock200OnPath(String url, String tt) {
         onRequest()
@@ -554,7 +518,6 @@ public class GoodDataHttpClientIntegrationTest {
         return onRequest()
                 .havingMethodEqualTo("POST")
                 .havingPathEqualTo(GDC_LOGIN_PATH);
-               // .havingBodyEqualTo("{\"postUserLogin\":{\"login\":\"user@email.com\",\"password\":\"top secret\",\"remember\":0,\"verify_level\":2}}");
     }
 
     private static void mockLogout(String profileId) {
@@ -566,9 +529,4 @@ public class GoodDataHttpClientIntegrationTest {
             .respond()
                 .withStatus(204);
     }
-
-
-
-
-
 }
