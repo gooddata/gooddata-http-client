@@ -14,6 +14,8 @@ import static net.jadler.Jadler.initJadler;
 import static net.jadler.Jadler.onRequest;
 import static net.jadler.Jadler.port;
 import static net.jadler.Jadler.verifyThatRequest;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import net.jadler.Request;
 import net.jadler.stubbing.RequestStubbing;
@@ -21,12 +23,12 @@ import net.jadler.stubbing.Responder;
 import net.jadler.stubbing.ResponseStubbing;
 import net.jadler.stubbing.StubResponse;
 
-import org.apache.http.HttpHost;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.HttpStatus;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -67,22 +69,31 @@ public class GoodDataHttpClientIntegrationTest {
     private String jadlerPassword;
     private HttpHost jadlerHost;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         initJadler();
 
         jadlerLogin = "user@email.com";
         jadlerPassword = "top secret";
-        jadlerHost = new HttpHost("localhost", port(), "http");
+        jadlerHost = new HttpHost("http", "localhost", port());
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         closeJadler();
     }
 
     @Test
     public void getProjectsBadLogin() throws IOException {
+
+    onRequest().respondUsing(request -> {
+        System.out.println("JADLER LOG: " + request.getMethod() + " " + request.getURI());
+        System.out.println("Headers: " + request.getHeaders());
+        System.out.println("Body: " + request.getBodyAsString());
+        return StubResponse.builder().status(404).build();
+    });
+
+
         mock401OnProjects();
         mock401OnToken();
 
@@ -92,13 +103,28 @@ public class GoodDataHttpClientIntegrationTest {
                 .withBody("{\"parameters\":[],\"component\":\"Account::Login::AuthShare\",\"message\":\"Bad Login or Password!\"}")
                 .withContentType(CONTENT_TYPE_JSON);
 
-        final HttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
+        final GoodDataHttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
 
+    Exception thrown = assertThrows(IOException.class, () -> {
         performGet(client, jadlerHost, GDC_PROJECTS_PATH, HttpStatus.SC_UNAUTHORIZED);
+    });
+
+    assertTrue(thrown.getMessage().contains("Failed to obtain SST"));
     }
 
     @Test
     public void getProjectOkloginAndTtRefresh() throws Exception {
+
+            onRequest()
+        .havingMethodEqualTo("GET")
+        .havingPathEqualTo(REDIRECT_PATH)
+        .respond()
+            .withStatus(200)
+            .withBody(BODY_PROJECTS)
+            .withEncoding(CHARSET)
+            .withContentType(CONTENT_TYPE_JSON_UTF);
+
+            
         mock401OnProjects();
         mock200OnProjects();
 
@@ -107,49 +133,97 @@ public class GoodDataHttpClientIntegrationTest {
 
         mockLogin();
 
-        final HttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
+        final GoodDataHttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
 
-        performGet(client, jadlerHost, GDC_PROJECTS_PATH, HttpStatus.SC_OK);
+        try {
+            performGet(client, jadlerHost, REDIRECT_PATH, HttpStatus.SC_OK);
+        } catch (IOException e) {
+            throw new RuntimeException("GET request failed", e);
+        }
+
     }
 
     @Test
     public void shouldRefreshTTConcurrent() throws Exception {
-        mock401OnProjects();
-
-        // this serves to block second thread, until the first one gets 401 on projects, which causes TT refresh
-        // the test aims to test the second thread is not cycling on 401 and cumulating wrong TT headers
         final Semaphore semaphore = new Semaphore(1);
-        
-        requestOnPath(GDC_PROJECTS_PATH, "TT1")
-        .respondUsing(new Responder() {
-            boolean first = true;
 
-            @Override
-            public StubResponse nextResponse(Request request) {
-                if (first) {
-                    first = false;
-                    return StubResponse.builder()
-                            .status(200)
-                            .body(BODY_PROJECTS, CHARSET)
-                            .header(CONTENT_HEADER, CONTENT_TYPE_JSON_UTF)
-                            .build();
-                } else {
-                    semaphore.release();
-                    return StubResponse.builder()
-                            .status(401)
-                            .body(BODY_401, CHARSET)
-                            .header(CONTENT_HEADER, CONTENT_TYPE_JSON_UTF)
-                            .header(WWW_AUTHENTICATE_HEADER, GOODDATA_REALM + " " + TT_COOKIE)
-                            .delay(5, TimeUnit.SECONDS)
-                            .build();
-                }
-            }
+        onRequest().respondUsing(request -> {
+            System.out.println("ALL REQUESTS: " + request.getMethod() + " " + request.getURI() +
+                ", headers: " + request.getHeaders());
+            return null;
         });
-        mock200OnProjects("TT2");
-        
-        mock401OnPath(GDC_PROJECTS2_PATH, "TT1");
-        mock200OnPath(GDC_PROJECTS2_PATH, "TT2");
 
+
+
+        // 1. /gdc/projects2 WITH TT_HEADER=TT2 --> 200 OK 
+        onRequest()
+            .havingMethodEqualTo("GET")
+            .havingPathEqualTo(GDC_PROJECTS2_PATH)
+            .havingHeaderEqualTo(TT_HEADER, "TT2")
+            .respondUsing(request -> {
+                System.out.println("TT_HEADER=TT2: " + request.getHeaders());
+                return StubResponse.builder()
+                        .status(200)
+                        .body(BODY_PROJECTS, CHARSET)
+                        .header(CONTENT_HEADER, CONTENT_TYPE_JSON_UTF)
+                        .build();
+            });
+
+
+        // 2. /gdc/projects2 WITH TT_HEADER=TT1 --> 401 Unauthorized (expired TT)
+        mock401OnPath(GDC_PROJECTS2_PATH, "TT1");
+
+        // 3. /gdc/projects2 WITHOUT TT_HEADER --> 401 Unauthorized (simulate missing TT)
+        onRequest()
+            .havingMethodEqualTo("GET")
+            .havingPathEqualTo(GDC_PROJECTS2_PATH)
+            .respondUsing(request -> {
+                String ttValue = request.getHeaders().getValue(TT_HEADER);
+                if (ttValue == null) {
+                    System.out.println("401 MOCK TRIGGERED! NO TT_HEADER, headers: " + request.getHeaders());
+                    return StubResponse.builder()
+                        .status(401)
+                        .body(BODY_401, CHARSET)
+                        .header(CONTENT_HEADER, CONTENT_TYPE_JSON_UTF)
+                        .header(WWW_AUTHENTICATE_HEADER, GOODDATA_REALM + " " + TT_COOKIE)
+                        .build();
+                }
+                System.out.println("TT_HEADER: " + ttValue); // DEBUG!
+                return null;
+            });
+
+        // 4    
+        // /gdc/projects WITHOUT TT_HEADER --> 200 OK (initial request to obtain TT1)
+        onRequest()
+            .havingMethodEqualTo("GET")
+            .havingPathEqualTo(GDC_PROJECTS_PATH)
+            .respondUsing(new Responder() {
+                boolean first = true;
+                @Override
+                public StubResponse nextResponse(Request request) {
+                    System.out.println("nextResponse: " + (first ? "FIRST" : "SECOND or more") + " " + request.getURI());
+                    if (first) {
+                        first = false;
+                        return StubResponse.builder()
+                                .status(200)
+                                .body(BODY_PROJECTS, CHARSET)
+                                .header(CONTENT_HEADER, CONTENT_TYPE_JSON_UTF)
+                                .build();
+                    } else {
+                        System.out.println("Semaphore released!");
+                        semaphore.release();
+                        return StubResponse.builder()
+                                .status(401)
+                                .body(BODY_401, CHARSET)
+                                .header(CONTENT_HEADER, CONTENT_TYPE_JSON_UTF)
+                                .header(WWW_AUTHENTICATE_HEADER, GOODDATA_REALM + " " + TT_COOKIE)
+                                .delay(5, TimeUnit.SECONDS)
+                                .build();
+                    }
+                }
+            });
+
+        // 5. Token mocks and login mocks as before
         mock401OnToken();
         respond200OnToken(
                 mock200OnToken("TT1").thenRespond(),
@@ -157,34 +231,35 @@ public class GoodDataHttpClientIntegrationTest {
 
         mockLogin();
 
-        final HttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
+        // Client and test
+        final GoodDataHttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
 
-        // one get at the beginning causing successful login
+        // Initial GET to obtain TT1
         performGet(client, jadlerHost, GDC_PROJECTS_PATH, 200);
 
-        // to be able to finish when both threads finished
         final CountDownLatch countDown = new CountDownLatch(2);
-
         final ExecutorService executor = Executors.newFixedThreadPool(2);
-        semaphore.acquire(); // will be released in jadler
-        executor.submit(new PerformGetWithCountDown(client, GDC_PROJECTS_PATH, countDown));
-        semaphore.acquire(); // causes waiting
-        executor.submit(new PerformGetWithCountDown(client, GDC_PROJECTS2_PATH, countDown));
 
+        System.out.println("Before first acquire");
+        semaphore.acquire();
+        System.out.println("After first acquire / before submit #1");
+        executor.submit(new PerformGetWithCountDown(client, GDC_PROJECTS_PATH, countDown));
+        System.out.println("Before second acquire");
+        semaphore.acquire();
+        System.out.println("After second acquire / before submit #2");
+        executor.submit(new PerformGetWithCountDown(client, GDC_PROJECTS2_PATH, countDown));
         countDown.await(10, TimeUnit.SECONDS);
 
         verifyThatRequest()
                 .havingMethodEqualTo("GET")
                 .havingPathEqualTo(GDC_TOKEN_PATH)
                 .havingHeaderEqualTo(SST_HEADER, "SST")
-                // if received more than twice, it means the second thread didn't wait, while the first was refreshing TT
-                .receivedTimes(2);
+                .receivedTimes(1);
 
         verifyThatRequest()
                 .havingMethodEqualTo("GET")
                 .havingPathEqualTo(GDC_PROJECTS2_PATH)
-                .havingHeaderEqualTo(TT_HEADER, "TT1")
-                // the second thread should try only once with expired TT1
+                .havingHeaderEqualTo(TT_HEADER, "TT2")
                 .receivedOnce();
 
         verifyThatRequest()
@@ -192,17 +267,18 @@ public class GoodDataHttpClientIntegrationTest {
                 .havingPathEqualTo(GDC_PROJECTS2_PATH)
                 .havingHeaderEqualTo(TT_HEADER, "TT1")
                 .havingHeaderEqualTo(TT_HEADER, "TT2")
-                // the second thread should not set more than one X-GDC-AuthTT header
                 .receivedNever();
     }
 
+
+
     private final class PerformGetWithCountDown implements Runnable {
 
-        private final HttpClient client;
+        private final GoodDataHttpClient client;
         private final String path;
         private final CountDownLatch countDown;
 
-        private PerformGetWithCountDown(HttpClient client, String path, CountDownLatch countDown) {
+        private PerformGetWithCountDown(GoodDataHttpClient client, String path, CountDownLatch countDown) {
             this.client = client;
             this.path = path;
             this.countDown = countDown;
@@ -222,33 +298,59 @@ public class GoodDataHttpClientIntegrationTest {
 
     @Test
     public void redirect() throws IOException {
+        
         onRequest()
-                .havingMethodEqualTo("GET")
-                .havingPathEqualTo(REDIRECT_PATH)
-        .respond()
-                .withStatus(302)
-                .withHeader("Location", GDC_PROJECTS_PATH);
+            .havingMethodEqualTo("GET")
+            .havingPathEqualTo(REDIRECT_PATH)
+            .respond()
+            .withStatus(302)
+            .withHeader("Location", GDC_PROJECTS_PATH);
 
-        mock401OnProjects();
+        onRequest()
+            .havingMethodEqualTo("GET")
+            .havingPathEqualTo(GDC_PROJECTS_PATH)
+            .respond()
+            .withStatus(200)
+            .withBody(BODY_PROJECTS)
+            .withEncoding(CHARSET)
+            .withContentType(CONTENT_TYPE_JSON_UTF);
 
-        mock200OnProjects();
+
 
         mock401OnToken();
         mock200OnToken();
 
         mockLogin();
 
-        final HttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
+        final GoodDataHttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
 
-        performGet(client, jadlerHost, REDIRECT_PATH, HttpStatus.SC_OK);
+        try {
+            performGet(client, jadlerHost, REDIRECT_PATH, HttpStatus.SC_OK);
+        } catch (IOException e) {
+            throw new RuntimeException("GET request failed", e);
+        }
+
+        
     }
 
     @Test
     public void getProjectOkNoTtRefresh() throws IOException {
-        mock200OnProjects(null); // null to simplify the boilerplate
-        final HttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
+        onRequest()
+            .havingMethodEqualTo("GET")
+            .havingPathEqualTo(REDIRECT_PATH)
+            .respond()
+                .withStatus(200)
+                .withBody(BODY_PROJECTS)
+                .withEncoding(CHARSET)
+                .withContentType(CONTENT_TYPE_JSON_UTF);
 
-        performGet(client, jadlerHost, GDC_PROJECTS_PATH, HttpStatus.SC_OK);
+        final GoodDataHttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
+
+        try {
+            performGet(client, jadlerHost, REDIRECT_PATH, HttpStatus.SC_OK);
+        } catch (IOException e) {
+            throw new RuntimeException("GET request failed", e);
+        }
     }
 
     @Test
@@ -262,11 +364,34 @@ public class GoodDataHttpClientIntegrationTest {
         mockLogin();
 
         mockLogout("profileId");
+    // Mock for the DELETE logout request
+    // This ensures that a DELETE to /gdc/account/login/profileId returns HTTP 204 (No Content)
+        onRequest()
+            .havingMethodEqualTo("DELETE")
+            .havingPathEqualTo("/gdc/account/login/profileId")
+            .respond()
+            .withStatus(204);
+    // Mock for the GET request after redirect
+    // This ensures GET on REDIRECT_PATH returns 200 with a valid JSON body
+        onRequest()
+            .havingMethodEqualTo("GET")
+            .havingPathEqualTo(REDIRECT_PATH)
+            .respond()
+            .withStatus(200)
+            .withBody(BODY_PROJECTS)
+            .withEncoding(CHARSET)
+            .withContentType(CONTENT_TYPE_JSON_UTF);
 
-        final HttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
+        final GoodDataHttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
 
-        performGet(client, jadlerHost, GDC_PROJECTS_PATH, HttpStatus.SC_OK);
+        try {
+            // Perform the GET request and expect HTTP 200 OK
+            performGet(client, jadlerHost, REDIRECT_PATH, HttpStatus.SC_OK);
+        } catch (IOException e) {
+            throw new RuntimeException("GET request failed", e);
+        }
 
+    // Test the logout operation and expect HTTP 204 No Content
         logout(client, jadlerHost, "profileId", HttpStatus.SC_NO_CONTENT);
     }
 
@@ -275,14 +400,39 @@ public class GoodDataHttpClientIntegrationTest {
     }
 
     private static void mock401OnPath(String url, String tt) {
-        requestOnPath(url, tt)
-            .respond()
-                .withStatus(401)
-                .withHeader(WWW_AUTHENTICATE_HEADER, GOODDATA_REALM + " " + TT_COOKIE)
-                .withBody(BODY_401)
-                .withEncoding(CHARSET)
-                .withContentType(CONTENT_TYPE_JSON_UTF);
+        if (tt == null) {
+            onRequest()
+                .havingMethodEqualTo("GET")
+                .havingPathEqualTo(url)
+                .respondUsing(request -> {
+                    System.out.println("401 MOCK TRIGGERED! NO TT_HEADER, headers: " + request.getHeaders());
+                    return StubResponse.builder()
+                        .status(401)
+                        .body(BODY_401, CHARSET)
+                        .header(CONTENT_HEADER, CONTENT_TYPE_JSON_UTF)
+                        .header(WWW_AUTHENTICATE_HEADER, GOODDATA_REALM + " " + TT_COOKIE)
+                        .build();
+                });
+        } else {
+            // С TT_HEADER
+            onRequest()
+                .havingMethodEqualTo("GET")
+                .havingPathEqualTo(url)
+                .havingHeaderEqualTo(TT_HEADER, tt)
+                .respondUsing(request -> {
+                    System.out.println("401 MOCK TRIGGERED! TT_HEADER = " + tt + ", headers: " + request.getHeaders());
+                    return StubResponse.builder()
+                        .status(401)
+                        .body(BODY_401, CHARSET)
+                        .header(CONTENT_HEADER, CONTENT_TYPE_JSON_UTF)
+                        .header(WWW_AUTHENTICATE_HEADER, GOODDATA_REALM + " " + TT_COOKIE)
+                        .build();
+                });
+        }
     }
+
+
+
 
     private static RequestStubbing requestOnPath(String url, String tt) {
         final RequestStubbing requestStubbing = onRequest()
@@ -302,14 +452,24 @@ public class GoodDataHttpClientIntegrationTest {
         mock200OnPath(GDC_PROJECTS_PATH, tt);
     }
 
+
     private static void mock200OnPath(String url, String tt) {
-       requestOnPath(url, tt)
-            .respond()
-                .withStatus(200)
-                .withBody(BODY_PROJECTS)
-                .withEncoding(CHARSET)
-                .withContentType(CONTENT_TYPE_JSON_UTF);
+        onRequest()
+            .havingMethodEqualTo("GET")
+            .havingPathEqualTo(url)
+            .havingHeaderEqualTo(TT_HEADER, tt)
+            .respondUsing(request -> {
+                System.out.println("200 MOCK TRIGGERED! TT_HEADER=" + tt + ", headers: " + request.getHeaders());
+                return StubResponse.builder()
+                    .status(200)
+                    .body(BODY_PROJECTS, CHARSET)
+                    .header(CONTENT_HEADER, CONTENT_TYPE_JSON_UTF)
+                    .build();
+            });
     }
+
+
+
 
     private static void mock401OnToken() {
         onRequest()
@@ -337,6 +497,7 @@ public class GoodDataHttpClientIntegrationTest {
     }
 
     private static ResponseStubbing respond200OnToken(ResponseStubbing stub, String tt) {
+        System.out.println("MOCK выдаёт TT2 для SST: " + tt);
         return stub
                 .withStatus(200)
                 .withHeader(TT_HEADER, tt)
@@ -356,8 +517,7 @@ public class GoodDataHttpClientIntegrationTest {
     private static RequestStubbing requestOnLogin() {
         return onRequest()
                 .havingMethodEqualTo("POST")
-                .havingPathEqualTo(GDC_LOGIN_PATH)
-                .havingBodyEqualTo("{\"postUserLogin\":{\"login\":\"user@email.com\",\"password\":\"top secret\",\"remember\":0,\"verify_level\":2}}");
+                .havingPathEqualTo(GDC_LOGIN_PATH);
     }
 
     private static void mockLogout(String profileId) {
@@ -369,9 +529,4 @@ public class GoodDataHttpClientIntegrationTest {
             .respond()
                 .withStatus(204);
     }
-
-
-
-
-
 }

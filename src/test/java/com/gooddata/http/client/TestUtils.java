@@ -5,74 +5,54 @@
  */
 package com.gooddata.http.client;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.entity.ContentType;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
-
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import java.io.IOException;
 
-/**
- * Common utilities for testing
- */
 abstract class TestUtils {
 
-    /**
-     * Executes GET on given host and path and asserts the response to given status
-     *
-     * @param client client for execution
-     * @param httpHost host
-     * @param path path at host
-     * @param expectedStatus status to assert
-     * @throws IOException
-     */
-    static void performGet(HttpClient client, HttpHost httpHost, String path, int expectedStatus) throws IOException {
+    // Calls a GET request using the GoodDataHttpClient and checks the response status.
+    // This method delegates to getForEntity for actual execution and status assertion.
+    static void performGet(GoodDataHttpClient client, HttpHost httpHost, String path, int expectedStatus) throws IOException {
         getForEntity(client, httpHost, path, expectedStatus);
     }
 
-    /**
-     * Executes GET on given host and path and asserts the response to given status
-     *
-     * @param client client for execution
-     * @param httpHost host
-     * @param path path at host
-     * @param expectedStatus status to assert
-     * @throws IOException
-     * @return fetched entity string representation
-     */
-    static String getForEntity(HttpClient client, HttpHost httpHost, String path, int expectedStatus) throws IOException {
-        HttpGet get = new HttpGet(path);
-        try {
-            get.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
-            HttpResponse getProjectResponse = client.execute(httpHost, get);
-            assertEquals(expectedStatus, getProjectResponse.getStatusLine().getStatusCode());
-            return getProjectResponse.getEntity() == null ? null : EntityUtils.toString(getProjectResponse.getEntity());
-        } finally {
-            get.reset();
-        }
+    // Executes a GET request and returns the response body as a String.
+    // Uses a lambda as a ResponseHandler to ensure that the HTTP response is closed automatically.
+    // This is the recommended resource-safe way in HttpClient 5.x.
+    static String getForEntity(GoodDataHttpClient client, HttpHost httpHost, String path, int expectedStatus) throws IOException {
+        org.apache.hc.client5.http.classic.methods.HttpGet get = new org.apache.hc.client5.http.classic.methods.HttpGet(path);
+        get.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
+
+        // Execute with lambda ResponseHandler for automatic resource management.
+        return client.execute(httpHost, get, null, response -> {
+            assertEquals(expectedStatus, response.getCode()); // Assert HTTP status code.
+            // Return response body as string, or null if no body.
+            return response.getEntity() == null ? null : EntityUtils.toString(response.getEntity());
+        });
     }
 
-    static void logout(HttpClient client, HttpHost httpHost, String profile, int expectedStatus) throws IOException {
-        final HttpDelete logout = new HttpDelete("/gdc/account/login/" + profile);
-        try {
-            logout.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
-            HttpResponse logoutResponse = client.execute(httpHost, logout);
-            assertEquals(expectedStatus, logoutResponse.getStatusLine().getStatusCode());
-            EntityUtils.consume(logoutResponse.getEntity());
-        } finally {
-            logout.reset();
-        }
+    // Executes a DELETE request (used for logout) and checks the response status.
+    // Also uses lambda ResponseHandler for safe connection/resource handling.
+    static void logout(GoodDataHttpClient client, HttpHost httpHost, String profile, int expectedStatus) throws IOException {
+        org.apache.hc.client5.http.classic.methods.HttpDelete logout = new org.apache.hc.client5.http.classic.methods.HttpDelete("/gdc/account/login/" + profile);
+        logout.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
+
+        client.execute(httpHost, logout, null, response -> {
+            assertEquals(expectedStatus, response.getCode()); // Assert HTTP status code.
+            EntityUtils.consume(response.getEntity());        // Ensure the entity is fully consumed and resources are released.
+            return null;                                     // No result needed for void
+        });
     }
 
-    static HttpClient createGoodDataClient(String login, String password, HttpHost host) {
-        final HttpClient httpClient = HttpClientBuilder.create().build();
-        final SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(login, password);
+    // Factory method to create a GoodDataHttpClient instance with login/password auth.
+    // Internally creates the underlying Apache HttpClient and wraps it.
+    static GoodDataHttpClient createGoodDataClient(String login, String password, HttpHost host) {
+        org.apache.hc.client5.http.classic.HttpClient httpClient = org.apache.hc.client5.http.impl.classic.HttpClients.createDefault();
+        SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(login, password);
         return new GoodDataHttpClient(httpClient, host, sstStrategy);
     }
 }

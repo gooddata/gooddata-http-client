@@ -11,18 +11,25 @@ import static java.lang.String.format;
 import static org.apache.commons.lang3.Validate.notEmpty;
 import static org.apache.commons.lang3.Validate.notNull;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.StatusLine;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpStatus;
+
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.classic.methods.HttpDelete;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+
+
+
+
+
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +90,7 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
         return httpHost;
     }
 
-    @Override
+   @Override
     public String obtainSst(final HttpClient httpClient, final HttpHost httpHost) throws IOException {
         notNull(httpClient, "client can't be null");
         notNull(httpHost, "host can't be null");
@@ -94,30 +101,46 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
             final String loginJson = JsonUtils.createLoginJson(login, password, VERIFICATION_LEVEL);
             postLogin.setEntity(new StringEntity(loginJson, ContentType.APPLICATION_JSON));
 
-            final HttpResponse response = httpClient.execute(httpHost, postLogin);
-            int status = response.getStatusLine().getStatusCode();
-            if (status != HttpStatus.SC_OK) {
-                final String message = getMessage(response);
-                log.info(message);
-                throw new GoodDataAuthException(message);
-            }
+            HttpClientResponseHandler<String> responseHandler = response -> {
+                int status = response.getCode();
+                if (status != HttpStatus.SC_OK) {
+                    final String message = getMessage(response);
+                    log.info(message);
+                    throw new GoodDataAuthException(message);
+                }
+                // todo TT is present at response as well - extract it to save one HTTP call
+                return TokenUtils.extractSST(response);
+            };
 
-            // todo TT is present at response as well - extract it to save one HTTP call
-            return TokenUtils.extractSST(response);
+            return httpClient.execute(httpHost, postLogin, responseHandler);
+
+        } catch (Exception e) {
+            if (e instanceof IOException) throw (IOException) e;
+            throw new IOException("Failed to obtain SST", e);
         } finally {
             postLogin.reset();
         }
     }
 
-    private String getMessage(final HttpResponse response) throws IOException {
+    private String getMessage(final ClassicHttpResponse response) throws IOException {
+        // Try to extract the request ID from the response headers
         final Header requestIdHeader = response.getFirstHeader(X_GDC_REQUEST_HEADER_NAME);
         final String requestId = requestIdHeader != null ? requestIdHeader.getValue() : null;
 
+        // Try to read the response entity (body)
         final HttpEntity responseEntity = response.getEntity();
-        final String reason = responseEntity != null ? EntityUtils.toString(responseEntity) : null;
+        String reason = null;
+        try {
+            reason = responseEntity != null ? EntityUtils.toString(responseEntity) : null;
+        } catch (Exception e) {
+            reason = "Failed to parse response body: " + e.getMessage();
+        }
 
-        return format("Unable to login reason='%s'. Request tracking details httpStatus=%s requestId=%s",
-                reason, response.getStatusLine().getStatusCode(), requestId);
+        // Return a formatted error message with the reason, HTTP status code, and request ID
+        return format(
+            "Unable to login reason='%s'. Request tracking details httpStatus=%s requestId=%s",
+            reason, response.getCode(), requestId
+        );
     }
 
     @Override
@@ -134,12 +157,21 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
         try {
             request.setHeader(SST_HEADER, sst);
             request.setHeader(TT_HEADER, tt);
-            final HttpResponse response = httpClient.execute(httpHost, request);
-            final StatusLine statusLine = response.getStatusLine();
-            if (statusLine.getStatusCode() != HttpStatus.SC_NO_CONTENT) {
-                throw new GoodDataLogoutException("Logout unsuccessful using http",
-                        statusLine.getStatusCode(), statusLine.getReasonPhrase());
+            org.apache.hc.core5.http.io.HttpClientResponseHandler<Void> handler = response -> {
+            if (response.getCode() != HttpStatus.SC_NO_CONTENT) {
+                throw new IOException(new GoodDataLogoutException("Logout unsuccessful using http",
+                        response.getCode(), response.getReasonPhrase()));
             }
+            return null;
+        };
+        try {
+            httpClient.execute(httpHost, request, handler);
+        } catch (IOException e) {
+            if (e.getCause() instanceof GoodDataLogoutException) {
+                throw (GoodDataLogoutException) e.getCause();
+            }
+            throw e;
+        }
         } finally {
             request.reset();
         }

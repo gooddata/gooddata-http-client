@@ -7,8 +7,8 @@ package com.gooddata.http.client;
 
 import static org.apache.commons.lang3.Validate.notNull;
 
-import org.apache.http.HttpHost;
-import org.apache.http.client.HttpClient;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.client5.http.classic.HttpClient;
 
 import java.io.IOException;
 

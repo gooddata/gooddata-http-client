@@ -7,14 +7,15 @@ package com.gooddata.http.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 
 import static com.gooddata.http.client.JsonUtils.createLoginJson;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.MatcherAssert.*;
-import static org.junit.Assert.assertTrue;
+
 
 public class JsonUtilsTest {
 
