@@ -17,6 +17,7 @@ import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hc.core5.http.Header;
 
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -146,6 +148,7 @@ public class GoodDataHttpClient {
     /**
      * Refreshes the temporary token (TT) using SST.
      */
+/* 
     private boolean refreshTt() throws IOException {
         log.debug("Obtaining TT");
         final HttpGet request = new HttpGet(TOKEN_URL);
@@ -154,6 +157,38 @@ public class GoodDataHttpClient {
             // Use response handler for token extraction
             return httpClient.execute(authHost, request, (HttpContext) null, response -> {
                 int status = response.getCode();
+                switch (status) {
+                    case HttpStatus.SC_OK:
+                        tt = TokenUtils.extractTT(response);
+                        return true;
+                    case HttpStatus.SC_UNAUTHORIZED:
+                        return false;
+                    default:
+                        throw new GoodDataAuthException("Unable to obtain TT, HTTP status: " + status);
+                }
+            });
+        } finally {
+            request.reset();
+        }
+    }
+*/
+
+    private boolean refreshTt() throws IOException {
+        log.debug("Obtaining TT");
+        final HttpGet request = new HttpGet(TOKEN_URL);
+        try {
+            request.setHeader(SST_HEADER, sst);
+
+            // ADD DEBUG PRINT HERE!
+            System.out.println("DEBUG: Going to GET " + TOKEN_URL + " with header " + SST_HEADER + "=" + sst);
+
+            // Use response handler for token extraction
+            return httpClient.execute(authHost, request, (HttpContext) null, response -> {
+                int status = response.getCode();
+
+                // ADD DEBUG PRINT HERE!
+                System.out.println("DEBUG: Response from " + TOKEN_URL + ": status=" + status);
+
                 switch (status) {
                     case HttpStatus.SC_OK:
                         tt = TokenUtils.extractTT(response);
@@ -179,37 +214,46 @@ public class GoodDataHttpClient {
         lock.lock();
 
         try {
+            System.out.println("LOOK TT: current value = " + tt);
+
             if (tt != null) {
                 request.setHeader(TT_HEADER, tt);
 
                 if (logoutRequest) {
                     try {
+                        System.out.println("LOOK 2: Going to call logout with: "
+                        + target + ", url=" + request.getRequestUri()
+                        + ", sst=" + sst + ", tt=" + tt);
+
                         sstStrategy.logout(httpClient, target, request.getRequestUri(), sst, tt);
                         tt = null;
                         sst = null;
                         // Return a dummy response for logout success
-                        return new org.apache.hc.core5.http.message.BasicClassicHttpResponse(HttpStatus.SC_NO_CONTENT, "Logout successful");
+                        return new BasicClassicHttpResponse(HttpStatus.SC_NO_CONTENT, "Logout successful");
                     } catch (GoodDataLogoutException e) {
-                        return new org.apache.hc.core5.http.message.BasicClassicHttpResponse(e.getStatusCode(), e.getStatusText());
+                        System.out.println("LOOOK execute DEBUG: Caught GoodDataLogoutException: " + e.getStatusCode() + " " + e.getStatusText());
+                        throw new GoodDataHttpStatusException(e.getStatusCode(), e.getStatusText());
                     }
                 }
             }
-            // Always use response handler: never return or expect CloseableHttpResponse anymore!
+
+            
             ClassicHttpResponse resp = this.httpClient.execute(
                     target,
                     request,
                     context,
                     response -> response // just return the response
             );
+            
             return handleResponse(target, request, resp, context);
         } finally {
             lock.unlock();
         }
     }
 
-
     public ClassicHttpResponse execute(HttpHost target, ClassicHttpRequest request) throws IOException {
-         return httpClient.execute(target, request, (HttpContext) null, response -> response);
+       //  return httpClient.execute(target, request, (HttpContext) null, response -> response);
+       return execute(target, request, null);
     }
 
 

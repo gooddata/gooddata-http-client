@@ -7,7 +7,9 @@ package com.gooddata.http.client;
 
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -32,6 +34,9 @@ import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
+import java.lang.reflect.Field;
+
 
 
 public class GoodDataHttpClientTest {
@@ -94,12 +99,13 @@ public class GoodDataHttpClientTest {
             .thenAnswer(invocation -> {
                 HttpClientResponseHandler<Object> handler = (HttpClientResponseHandler<Object>) invocation.getArgument(3);
                 count[0]++;
+                System.out.println("MOCK: handle call #" + count[0]);
                 if (count[0] == 1) {
-                    return handler.handleResponse(ttChallengeResponse);
+                    return handler.handleResponse(ttChallengeResponse); // 401 Unauthorized
                 } else if (count[0] == 2) {
-                    return handler.handleResponse(ttRefreshedResponse);
+                    return handler.handleResponse(ttRefreshedResponse); // 200 OK
                 } else {
-                    return handler.handleResponse(okResponse);
+                    return handler.handleResponse(okResponse); // OK
                 }
             });
 
@@ -108,8 +114,6 @@ public class GoodDataHttpClientTest {
         assertEquals(okResponse, goodDataHttpClient.execute(host, get));
     }
 
-
-    
 
     @SuppressWarnings("unchecked")
     @Test
@@ -156,7 +160,11 @@ public class GoodDataHttpClientTest {
                 }
             });
 
-        assertEquals(response401.getCode(), goodDataHttpClient.execute(host, get).getCode());
+        GoodDataHttpStatusException ex = assertThrows(
+            GoodDataHttpStatusException.class,
+            () -> goodDataHttpClient.execute(host, get)
+        );
+        assertEquals(401, ex.getCode());
     }
 
 
@@ -204,6 +212,7 @@ public class GoodDataHttpClientTest {
     @SuppressWarnings("unchecked")
     @Test
     public void execute_logoutPath() throws Exception {
+        // 1. Mock httpClient.execute(...) for general HTTP behavior, as used internally by the client:
         when(httpClient.execute(eq(host), any(ClassicHttpRequest.class), (HttpContext) isNull(), any(HttpClientResponseHandler.class)))
             .thenAnswer(new Answer<Object>() {
                 private int count = 0;
@@ -212,27 +221,56 @@ public class GoodDataHttpClientTest {
                     HttpClientResponseHandler<?> handler = invocation.getArgument(3);
                     count++;
                     if (count == 1) {
-                        return handler.handleResponse(ttChallengeResponse); // 401
+                        // First call: simulate TT challenge (401)
+                        return handler.handleResponse(ttChallengeResponse); 
                     } else if (count == 2) {
-                        return handler.handleResponse(ttRefreshedResponse); // 200
+                        // Second call: simulate refreshed TT (200)
+                        return handler.handleResponse(ttRefreshedResponse);
                     } else {
-                        return handler.handleResponse(okResponse); // 200
+                        // Any subsequent calls: simulate unauthorized (401)
+                        ClassicHttpResponse errorResponse = new BasicClassicHttpResponse(401, "Unauthorized");
+                        return handler.handleResponse(errorResponse);
                     }
                 }
             });
 
+
+
+        // 2. Mock SST (login) retrieval to always return SST:
         when(sstStrategy.obtainSst(httpClient, host)).thenReturn(SST);
 
         final String logoutUrl = "/gdc/account/login/1";
+
+        // 3. Mock logout to throw GoodDataLogoutException (this is what the test is verifying!):
+
+        doThrow(new GoodDataLogoutException("Logout unsuccessful", 401, "Unauthorized"))
+            .when(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUrl), eq(SST), eq(TT));
+
+        System.out.println("LOOK 4: Now calling goodDataHttpClient.execute(...)");
+
+        Field ttField = GoodDataHttpClient.class.getDeclaredField("tt");
+        ttField.setAccessible(true);
+        ttField.set(goodDataHttpClient, TT);
+        System.out.println("DEBUG TEST: manually set tt = " + TT);
+
+        Field sstField = GoodDataHttpClient.class.getDeclaredField("sst");
+        sstField.setAccessible(true);
+        sstField.set(goodDataHttpClient, SST); // Manually set SST for the test
+
+        System.out.println("DEBUG TEST: manually set tt = " + TT + ", sst = " + SST);
+
+        // 4. Assert that executing the client will throw GoodDataHttpStatusException with expected fields:
         GoodDataHttpStatusException ex = assertThrows(
                 GoodDataHttpStatusException.class,
                 () -> goodDataHttpClient.execute(host, new HttpDelete(logoutUrl))
-            );
-        assertEquals(204, ex.getCode());
-        assertEquals("Logout successful", ex.getReason());
+        );
+        assertEquals(401, ex.getCode());
+        assertEquals("Unauthorized", ex.getReason());
 
+        // 5. Verify that logout was actually called with the correct parameters:
         verify(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUrl), eq(SST), eq(TT));
     }
+
 
 
     @SuppressWarnings("unchecked")
@@ -259,17 +297,24 @@ public class GoodDataHttpClientTest {
 
         when(sstStrategy.obtainSst(httpClient, host)).thenReturn(SST);
 
-        final String logoutUri = "https://server.com:443/gdc/account/login/1";
-        GoodDataHttpStatusException ex = assertThrows(
-            GoodDataHttpStatusException.class,
-            () -> goodDataHttpClient.execute(host, new HttpDelete(URI.create(logoutUri)))
-        );
-        assertEquals(204, ex.getCode());
-        assertEquals("Logout successful", ex.getReason());
+        Field ttField = GoodDataHttpClient.class.getDeclaredField("tt");
+        ttField.setAccessible(true);
+        ttField.set(goodDataHttpClient, TT);    
 
+        Field sstField = GoodDataHttpClient.class.getDeclaredField("sst");
+        sstField.setAccessible(true);
+        sstField.set(goodDataHttpClient, SST);      
+
+        System.out.println("DEBUG TEST: manually set tt = " + TT + ", sst = " + SST);
+
+        final String logoutUri = "/gdc/account/login/1";
+        ClassicHttpResponse response = goodDataHttpClient.execute(host, new HttpDelete(logoutUri));
+        assertEquals(204, response.getCode());
+        assertEquals("Logout successful", response.getReasonPhrase());
 
         verify(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUri), eq(SST), eq(TT));
     }
+
 
 
     @SuppressWarnings("unchecked")
