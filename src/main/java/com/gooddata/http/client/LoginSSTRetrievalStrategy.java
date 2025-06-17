@@ -187,9 +187,6 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
     }
 
 
-    /**
-     * Fot tests only
-     */
     void setLogger(Logger log) {
         this.log = log;
     }

@@ -15,6 +15,7 @@ import org.apache.hc.core5.http.message.StatusLine;
 import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
+
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
@@ -232,7 +233,5 @@ public class LoginSSTRetrievalStrategyTest {
 
         sstStrategy.setLogger(logger);
     }
-
-
 
 }
