@@ -11,6 +11,7 @@ import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import java.io.IOException;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
 
 abstract class TestUtils {
 
@@ -24,16 +25,17 @@ abstract class TestUtils {
     // Uses a lambda as a ResponseHandler to ensure that the HTTP response is closed automatically.
     // This is the recommended resource-safe way in HttpClient 5.x.
     static String getForEntity(GoodDataHttpClient client, HttpHost httpHost, String path, int expectedStatus) throws IOException {
-        org.apache.hc.client5.http.classic.methods.HttpGet get = new org.apache.hc.client5.http.classic.methods.HttpGet(path);
+        HttpGet get = new HttpGet(path);
         get.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
 
-        // Execute with lambda ResponseHandler for automatic resource management.
         return client.execute(httpHost, get, null, response -> {
-            assertEquals(expectedStatus, response.getCode()); // Assert HTTP status code.
-            // Return response body as string, or null if no body.
+            if (response.getCode() != expectedStatus) {
+                throw new IOException("Unexpected status: " + response.getCode());
+            }
             return response.getEntity() == null ? null : EntityUtils.toString(response.getEntity());
         });
     }
+
 
     // Executes a DELETE request (used for logout) and checks the response status.
     // Also uses lambda ResponseHandler for safe connection/resource handling.

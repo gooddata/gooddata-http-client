@@ -17,6 +17,7 @@ import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hc.core5.http.Header;
 
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -40,6 +42,11 @@ public class GoodDataHttpClient {
     private static final String TOKEN_URL = "/gdc/account/token";
     public static final String COOKIE_GDC_AUTH_TT = "cookie=GDCAuthTT";
     public static final String COOKIE_GDC_AUTH_SST = "cookie=GDCAuthSST";
+
+    private volatile boolean tokenRefreshing = false;
+    private final Object tokenRefreshMonitor = new Object();
+
+
 
     static final String TT_HEADER = "X-GDC-AuthTT";
     static final String SST_HEADER = "X-GDC-AuthSST";
@@ -95,62 +102,136 @@ public class GoodDataHttpClient {
         return GoodDataChallengeType.UNKNOWN;
     }
 
+
     /**
      * Handles the authentication challenge and returns a refreshed response.
      */
+ /**
+ * Handles the authentication challenge and returns a refreshed response.
+ */
+ 
+
     private ClassicHttpResponse handleResponse(
             final HttpHost httpHost,
-            final ClassicHttpRequest request,
+            final ClassicHttpRequest originalRequest,
             final ClassicHttpResponse originalResponse,
-            final HttpContext context) throws IOException {
+            final HttpContext context) throws IOException, InterruptedException {
+
 
         if (originalResponse == null) {
             throw new IllegalStateException("httpClient.execute returned null! Check your mock configuration.");
         }
+
         final GoodDataChallengeType challenge = identifyGoodDataChallenge(originalResponse);
+
         if (challenge == GoodDataChallengeType.UNKNOWN) {
             return originalResponse;
         }
+
         EntityUtils.consume(originalResponse.getEntity());
 
-        try {
-            if (authLock.tryLock()) {
-                final Lock writeLock = rwLock.writeLock();
-                writeLock.lock();
-                boolean doSST = true;
-                try {
-                    if (challenge == GoodDataChallengeType.TT && sst != null) {
-                        if (refreshTt()) {
-                            doSST = false;
-                        }
+        synchronized (tokenRefreshMonitor) {
+            if (tokenRefreshing) {
+                while (tokenRefreshing) {
+                    try {
+                        tokenRefreshMonitor.wait();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IOException("Interrupted while waiting for token refresh", e);
                     }
-                    if (doSST) {
-                        sst = sstStrategy.obtainSst(httpClient, authHost);
-                        if (!refreshTt()) {
-                            throw new GoodDataAuthException("Unable to obtain TT after successfully obtained SST");
-                        }
-                    }
-                } finally {
-                    writeLock.unlock();
                 }
+                final ClassicHttpRequest retryRequest = cloneRequestWithNewTT(originalRequest, tt);
+                return this.httpClient.execute(httpHost, retryRequest, context, response -> response);
             } else {
-                authLock.lock();
+                tokenRefreshing = true;
+            }
+        }
+
+        try {
+            final Lock writeLock = rwLock.writeLock();
+            writeLock.lock();
+            try {
+                boolean doSST = true;
+                if (challenge == GoodDataChallengeType.TT && sst != null) {
+                    boolean refreshed = refreshTt();
+                    if (refreshed) {
+                        doSST = false;
+                    }
+                }
+                if (doSST) {
+                    sst = sstStrategy.obtainSst(httpClient, authHost);
+                    if (!refreshTt()) {
+                        throw new GoodDataAuthException("Unable to obtain TT after successfully obtained SST");
+                    }
+                }
+            } finally {
+                writeLock.unlock();
             }
         } finally {
-            authLock.unlock();
+            synchronized (tokenRefreshMonitor) {
+                tokenRefreshing = false;
+                tokenRefreshMonitor.notifyAll();
+            }
         }
-        // New style: use response handler, response will be automatically released
-        return this.httpClient.execute(httpHost, request, context, response -> response);
+
+        final ClassicHttpRequest retryRequest = cloneRequestWithNewTT(originalRequest, tt);
+        ClassicHttpResponse retryResponse = this.httpClient.execute(httpHost, retryRequest, context, response -> response);
+
+
+        if (retryResponse.getCode() == HttpStatus.SC_UNAUTHORIZED &&
+            identifyGoodDataChallenge(retryResponse) != GoodDataChallengeType.UNKNOWN) {
+            return retryResponse;
+        }
+
+        return retryResponse;
     }
+
+
+
+
+    /*
+     * 
+     */
+ 
+    private ClassicHttpRequest cloneRequestWithNewTT(ClassicHttpRequest original, String newTT) {
+        ClassicHttpRequest copy;
+
+
+        // Clone basic types (extend if needed)
+        switch (original.getMethod()) {
+            case "GET":
+                copy = new HttpGet(original.getRequestUri());
+                break;
+            case "DELETE":
+                copy = new org.apache.hc.client5.http.classic.methods.HttpDelete(original.getRequestUri());
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported HTTP method: " + original.getMethod());
+        }
+
+        // Copy original headers
+        for (Header header : original.getHeaders()) {
+            copy.addHeader(header.getName(), header.getValue());
+        }
+
+        // Set the new TT
+        copy.addHeader(TT_HEADER, newTT);
+        return copy;
+    }
+
+
+
+
 
     /**
      * Refreshes the temporary token (TT) using SST.
      */
+/* 
     private boolean refreshTt() throws IOException {
         log.debug("Obtaining TT");
         final HttpGet request = new HttpGet(TOKEN_URL);
         try {
-            request.setHeader(SST_HEADER, sst);
+            request.addHeader(SST_HEADER, sst);
             // Use response handler for token extraction
             return httpClient.execute(authHost, request, (HttpContext) null, response -> {
                 int status = response.getCode();
@@ -168,48 +249,96 @@ public class GoodDataHttpClient {
             request.reset();
         }
     }
+*/
+
+    private boolean refreshTt() throws IOException {
+        log.debug("Obtaining TT");
+        final HttpGet request = new HttpGet(TOKEN_URL);
+        try {
+
+            request.addHeader(SST_HEADER, sst);
+
+            return httpClient.execute(authHost, request, (HttpContext) null, response -> {
+                int status = response.getCode();
+
+                switch (status) {
+                    case HttpStatus.SC_OK:
+                        tt = TokenUtils.extractTT(response);
+                        return true;
+                    case HttpStatus.SC_UNAUTHORIZED:
+                        return false;
+                    default:
+                        throw new GoodDataAuthException("Unable to obtain TT, HTTP status: " + status);
+                }
+            });
+        } finally {
+            request.reset();
+        }
+    }
+
 
     /**
      * Main public execute method: new style, always uses response handler.
      */
+/**
+ * Main public execute method: new style, always uses response handler.
+ */
     public ClassicHttpResponse execute(HttpHost target, ClassicHttpRequest request, HttpContext context) throws IOException {
         notNull(request, "Request can't be null");
-        final boolean logoutRequest = isLogoutRequest(target, request);
-        final Lock lock = logoutRequest ? rwLock.writeLock() : rwLock.readLock();
+        // FIX: use only writeLock to avoid deadlock during handleResponse
+        final Lock lock = rwLock.writeLock();
         lock.lock();
-
         try {
-            if (tt != null) {
-                request.setHeader(TT_HEADER, tt);
 
-                if (logoutRequest) {
-                    try {
-                        sstStrategy.logout(httpClient, target, request.getRequestUri(), sst, tt);
-                        tt = null;
-                        sst = null;
-                        // Return a dummy response for logout success
-                        return new org.apache.hc.core5.http.message.BasicClassicHttpResponse(HttpStatus.SC_NO_CONTENT, "Logout successful");
-                    } catch (GoodDataLogoutException e) {
-                        return new org.apache.hc.core5.http.message.BasicClassicHttpResponse(e.getStatusCode(), e.getStatusText());
-                    }
+            // --- PATCH: Always check logout even if TT is null, if it's a logout request ---
+            if (isLogoutRequest(target, request)) {
+                try {
+
+                    sstStrategy.logout(httpClient, target, request.getRequestUri(), sst, tt);
+                    tt = null;
+                    sst = null;
+                    // Return a dummy response for logout success
+                    return new BasicClassicHttpResponse(HttpStatus.SC_NO_CONTENT, "Logout successful");
+                } catch (GoodDataLogoutException e) {
+                    throw new GoodDataHttpStatusException(e.getStatusCode(), e.getStatusText());
                 }
             }
-            // Always use response handler: never return or expect CloseableHttpResponse anymore!
+            // --- END PATCH ---
+
+            if (tt != null) {
+                request.addHeader(TT_HEADER, tt);
+            }
+
             ClassicHttpResponse resp = this.httpClient.execute(
                     target,
                     request,
                     context,
-                    response -> response // just return the response
+                    response -> response
             );
-            return handleResponse(target, request, resp, context);
+
+            if (resp.getCode() == HttpStatus.SC_UNAUTHORIZED) {
+                // 👇 Proper handling of InterruptedException
+                try {
+                    return handleResponse(target, request, resp, context);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt(); // Preserve interrupt status
+                    throw new IOException("Interrupted while handling authentication challenge", e);
+                }
+            }
+
+            return resp;
+
         } finally {
             lock.unlock();
         }
     }
 
 
+
+
     public ClassicHttpResponse execute(HttpHost target, ClassicHttpRequest request) throws IOException {
-         return httpClient.execute(target, request, (HttpContext) null, response -> response);
+       //  return httpClient.execute(target, request, (HttpContext) null, response -> response);
+       return execute(target, request, null);
     }
 
 
