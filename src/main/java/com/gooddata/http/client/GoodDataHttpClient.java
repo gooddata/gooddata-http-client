@@ -13,9 +13,11 @@ import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
 import org.apache.hc.core5.http.protocol.HttpContext;
@@ -27,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -141,7 +142,7 @@ public class GoodDataHttpClient {
                     }
                 }
                 final ClassicHttpRequest retryRequest = cloneRequestWithNewTT(originalRequest, tt);
-                return this.httpClient.execute(httpHost, retryRequest, context, response -> response);
+                return this.httpClient.execute(httpHost, retryRequest, context, response -> copyResponseEntity(response));
             } else {
                 tokenRefreshing = true;
             }
@@ -175,7 +176,7 @@ public class GoodDataHttpClient {
         }
 
         final ClassicHttpRequest retryRequest = cloneRequestWithNewTT(originalRequest, tt);
-        ClassicHttpResponse retryResponse = this.httpClient.execute(httpHost, retryRequest, context, response -> response);
+        ClassicHttpResponse retryResponse = this.httpClient.execute(httpHost, retryRequest, context, response -> copyResponseEntity(response));
 
 
         if (retryResponse.getCode() == HttpStatus.SC_UNAUTHORIZED &&
@@ -309,12 +310,7 @@ public class GoodDataHttpClient {
                 request.addHeader(TT_HEADER, tt);
             }
 
-            ClassicHttpResponse resp = this.httpClient.execute(
-                    target,
-                    request,
-                    context,
-                    response -> response
-            );
+            ClassicHttpResponse resp = this.httpClient.execute(target, request, context, response -> copyResponseEntity(response));
 
             if (resp.getCode() == HttpStatus.SC_UNAUTHORIZED) {
                 // 👇 Proper handling of InterruptedException
@@ -343,7 +339,7 @@ public class GoodDataHttpClient {
 
 
     public <T> T execute(HttpHost target, ClassicHttpRequest request, HttpContext context,
-                        HttpClientResponseHandler<? extends T> responseHandler) throws IOException {
+                        HttpClientResponseHandler<? extends T> responseHandler) throws IOException, org.apache.hc.core5.http.HttpException {
         return httpClient.execute(target, request, context, responseHandler);
     }
     /**
@@ -353,5 +349,28 @@ public class GoodDataHttpClient {
         return authHost.equals(target)
                 && "DELETE".equals(request.getMethod())
                 && URI.create(request.getRequestUri()).getPath().startsWith(LOGIN_URL);
+    }
+
+    /**
+     * Helper method to copy response entity to avoid stream closure issues.
+     * Returns a new response with the same properties but a copied entity.
+     */
+    private ClassicHttpResponse copyResponseEntity(ClassicHttpResponse response) throws IOException {
+        if (response.getEntity() == null) {
+            return response;
+        }
+        
+        // Copy the entity content
+        byte[] content = EntityUtils.toByteArray(response.getEntity());
+        ContentType contentType = ContentType.parseLenient(response.getEntity().getContentType());
+        
+        // Create a new response with copied entity
+        BasicClassicHttpResponse newResponse = new BasicClassicHttpResponse(response.getCode(), response.getReasonPhrase());
+        for (Header header : response.getHeaders()) {
+            newResponse.addHeader(header);
+        }
+        newResponse.setEntity(new ByteArrayEntity(content, contentType));
+        
+        return newResponse;
     }
 }

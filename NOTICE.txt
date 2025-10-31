@@ -8,45 +8,43 @@ This project includes a number of subcomponents with separate copyright notices 
 ================================================================================
 DEPENDENCIES
 
-- Apache Commons Codec (1.11) [Apache-2.0, BSD-3-Clause]
 - Apache Commons Lang (3.12.0) [Apache-2.0]
-- Apache Log4j (1.2.17) [Apache-2.0]
-- Byte Buddy (without dependencies) (1.11.13) [BSD-3-Clause, Apache-2.0]
-- Byte Buddy agent (1.11.13) [Apache-2.0]
-- Commons Logging (1.2) [Apache-2.0]
+- Apache Commons Text (1.10.0) [Apache-2.0]
+- Apache HttpClient 5 (5.5) [Apache-2.0]
+- Apache HttpCore 5 (5.3.4) [Apache-2.0]
+- Apache HttpCore 5 H2 (5.3.4) [Apache-2.0]
+- Byte Buddy (without dependencies) (1.14.4) [Apache-2.0]
+- Byte Buddy agent (1.14.4) [Apache-2.0]
 - commons-collections (3.2.2) [Apache-2.0]
 - commons-io (2.11.0) [Apache-2.0]
+- commons-lang (2.6) [Apache-2.0]
 - Hamcrest (2.2) [BSD-3-Clause]
-- Hamcrest Core (1.3) [BSD-3-Clause]
-- Hamcrest library (1.3) BSD-3-Clause]
-- HttpClient (4.5.13) [Apache-2.0]
-- HttpCore (4.4.14) [Apache-2.0]
-- Jackson-annotations (2.13.0) [Apache-2.0]
-- Jackson-core (2.13.0) [Apache-2.0]
-- jackson-databind (2.13.0) [Apache-2.0]
-- jadler-all (1.3.0) [MIT]
-- jadler-core (1.3.0) [MIT]
-- jadler-jetty (1.3.0) [MIT]
-- jadler-junit (1.3.0) [MIT]
+- Jackson-annotations (2.14.2) [Apache-2.0]
+- Jackson-core (2.14.2) [Apache-2.0]
+- jackson-databind (2.14.2) [Apache-2.0]
+- jadler-core (1.3.1) [MIT]
+- jadler-jetty (1.3.1) [MIT]
 - Jetty :: Continuation (8.1.11.v20130520) [Multi-license: EPL-1.0 OR Apache-2.0]
 - Jetty :: Http Utility (8.1.11.v20130520) [Multi-license: EPL-1.0 OR Apache-2.0]
 - Jetty :: IO Utility (8.1.11.v20130520) [Multi-license: EPL-1.0 OR Apache-2.0]
 - Jetty :: Server Core (8.1.11.v20130520) [Multi-license: EPL-1.0 OR Apache-2.0]
 - Jetty :: Utilities (8.1.11.v20130520) [Multi-license: EPL-1.0 OR Apache-2.0, MIT]
 - Jetty Orbit :: Servlet API (3.0.0.v201112011016) [Multi-license: CDDL-1.0 OR GPL-2.0-with-classpath-exception, EPL-1.0, Apache-2.0]
-- JUnit (4.13.2) [CPL-1.0]
-- Lang (2.6) [Apache-2.0]
-- Mockito (3.12.4) [MIT, Apache-2.0]
-- Objenesis (3.2) [MIT]
-- SLF4J API Module (1.7.32) [MIT]
-- SLF4J LOG4J-12 Binding relocated (1.7.32) [MIT]
+- JUnit Jupiter API (5.10.2) [EPL-2.0]
+- JUnit Jupiter Engine (5.10.2) [EPL-2.0]
+- Mockito Core (5.3.1) [MIT]
+- Objenesis (3.3) [Apache-2.0]
+- SLF4J API Module (2.0.7) [MIT]
+- SLF4J Simple Binding (2.0.7) [MIT]
 
 APPENDIX: LICENSES
 Apache-2.0
+BSD-3-Clause
 CDDL-1.0
-CPL-1.0
 EPL-1.0
+EPL-2.0
 GPL-2.0-with-classpath-exception
+MIT
 [End of Table of Contents]
 
 ================================================================================

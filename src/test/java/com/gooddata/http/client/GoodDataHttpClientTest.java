@@ -24,7 +24,6 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
-import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -35,7 +34,6 @@ import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doThrow;
 import java.lang.reflect.Field;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.message.BasicHeader;
@@ -88,6 +86,7 @@ public class GoodDataHttpClientTest {
         when(response401.getCode()).thenReturn(401);
         when(response401.getHeaders(anyString())).thenReturn(new Header[0]);
         when(response401.getFirstHeader(anyString())).thenReturn(null);
+        when(response401.getEntity()).thenReturn(null);
 
         // PATCH: use Mockito mock for sstChallengeResponse instead of BasicClassicHttpResponse!
         sstChallengeResponse = org.mockito.Mockito.mock(CloseableHttpResponse.class);
@@ -96,12 +95,14 @@ public class GoodDataHttpClientTest {
             .thenReturn(new Header[] { new BasicHeader("WWW-Authenticate", "cookie=GDCAuthSST") });
         when(sstChallengeResponse.getFirstHeader(anyString()))
             .thenReturn(new BasicHeader("WWW-Authenticate", "cookie=GDCAuthSST"));
+        when(sstChallengeResponse.getEntity()).thenReturn(null);
         // English comment: sstChallengeResponse should always be a Mockito mock so you can use it everywhere as CloseableHttpResponse.
 
         // Configure ttChallengeResponse to simulate 401 Unauthorized with TT challenge header
         when(ttChallengeResponse.getCode()).thenReturn(401);
         Header ttAuthHeader = new BasicHeader("WWW-Authenticate", "cookie=GDCAuthTT");
         when(ttChallengeResponse.getHeaders("WWW-Authenticate")).thenReturn(new Header[] { ttAuthHeader });
+        when(ttChallengeResponse.getEntity()).thenReturn(null);
 
         // Always return TT header for okResponse when requested (simulate successful re-auth)
         when(okResponse.getCode()).thenReturn(200);
@@ -112,6 +113,7 @@ public class GoodDataHttpClientTest {
         // For all other headers, return empty array/null to prevent NullPointerException
         when(okResponse.getHeaders(argThat(s -> !"X-GDC-AuthTT".equals(s)))).thenReturn(new Header[0]);
         when(okResponse.getFirstHeader(argThat(s -> !"X-GDC-AuthTT".equals(s)))).thenReturn(null);
+        when(okResponse.getEntity()).thenReturn(null);
 
         // Configure ttRefreshedResponse to always return HTTP 200 and TT header
         when(ttRefreshedResponse.getCode()).thenReturn(200);
@@ -121,6 +123,7 @@ public class GoodDataHttpClientTest {
         when(ttRefreshedResponse.getFirstHeader(eq("X-GDC-AuthTT"))).thenReturn(new BasicHeader("X-GDC-AuthTT", TT));
         when(ttRefreshedResponse.getHeaders(argThat(s -> !"X-GDC-AuthTT".equals(s)))).thenReturn(new Header[0]);
         when(ttRefreshedResponse.getFirstHeader(argThat(s -> !"X-GDC-AuthTT".equals(s)))).thenReturn(null);
+        when(ttRefreshedResponse.getEntity()).thenReturn(null);
 
         // Other configuration as needed...
     }
@@ -210,12 +213,15 @@ public class GoodDataHttpClientTest {
                     HttpClientResponseHandler<?> handler = invocation.getArgument(3);
                     count++;
                     if (count == 1) {
-                        return handler.handleResponse(ttChallengeResponse); // 401, SST
+                        return handler.handleResponse(ttChallengeResponse); // 401, TT challenge
                     } else {
-                        return handler.handleResponse(response401); // 401
+                        return handler.handleResponse(response401); // 401 (no challenge - failed to refresh TT)
                     }
                 }
             });
+        // Mock sstStrategy to successfully obtain SST
+        when(sstStrategy.obtainSst(httpClient, host)).thenReturn(SST);
+        
         GoodDataAuthException ex = assertThrows(
             GoodDataAuthException.class,
             () -> goodDataHttpClient.execute(host, get)
@@ -238,14 +244,14 @@ public class GoodDataHttpClientTest {
                     count++;
                     if (count == 1) {
                         return handler.handleResponse(ttChallengeResponse); // 401 TT challenge
-                    } else if (count == 2) {
-                        return handler.handleResponse(sstChallengeResponse); // 401 SST challenge
                     } else {
-                        return handler.handleResponse(response401); // fallback
+                        return handler.handleResponse(response401); // 401 (no challenge - failed to refresh TT)
                     }
                 }
             });
 
+        // Mock sstStrategy to successfully obtain SST
+        when(sstStrategy.obtainSst(httpClient, host)).thenReturn(SST);
 
         GoodDataAuthException ex = assertThrows(
             GoodDataAuthException.class,

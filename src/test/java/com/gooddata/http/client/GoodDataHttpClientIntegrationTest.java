@@ -84,7 +84,7 @@ public class GoodDataHttpClientIntegrationTest {
     }
 
     @Test
-    public void vi () throws IOException {
+    public void vi () throws IOException, org.apache.hc.core5.http.HttpException {
         mock401OnProjects();
         mock401OnToken();
 
@@ -96,7 +96,11 @@ public class GoodDataHttpClientIntegrationTest {
 
         final GoodDataHttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
 
-        performGet(client, jadlerHost, GDC_PROJECTS_PATH, HttpStatus.SC_UNAUTHORIZED);
+        // When login fails with 401, obtainSst() throws GoodDataAuthException
+        org.junit.jupiter.api.Assertions.assertThrows(
+            GoodDataAuthException.class,
+            () -> performGet(client, jadlerHost, GDC_PROJECTS_PATH, HttpStatus.SC_UNAUTHORIZED)
+        );
     }
 
 
@@ -150,7 +154,7 @@ public class GoodDataHttpClientIntegrationTest {
         public void run() {
             try {
                 performGet(client, jadlerHost, path, HttpStatus.SC_OK);
-            } catch (IOException e) {
+            } catch (IOException | org.apache.hc.core5.http.HttpException e) {
                 throw new IllegalStateException("Can't execute get", e);
             } finally {
                 countDown.countDown();
@@ -159,7 +163,7 @@ public class GoodDataHttpClientIntegrationTest {
     }
 
     @Test
-    public void redirect() throws IOException {
+    public void redirect() throws IOException, org.apache.hc.core5.http.HttpException {
         
         onRequest()
             .havingMethodEqualTo("GET")
@@ -196,7 +200,7 @@ public class GoodDataHttpClientIntegrationTest {
     }
 
     @Test
-    public void getProjectOkNoTtRefresh() throws IOException {
+    public void getProjectOkNoTtRefresh() throws IOException, org.apache.hc.core5.http.HttpException {
         onRequest()
             .havingMethodEqualTo("GET")
             .havingPathEqualTo(REDIRECT_PATH)
@@ -216,44 +220,33 @@ public class GoodDataHttpClientIntegrationTest {
     }
 
     @Test
-    public void shouldLogoutOk()  throws IOException {
+    public void shouldLogoutOk()  throws IOException, org.apache.hc.core5.http.HttpException {
+        // Setup mocks to trigger authentication, then test logout
         mock401OnProjects();
         mock200OnProjects();
-
+        
         mock401OnToken();
         mock200OnToken();
 
         mockLogin();
 
         mockLogout("profileId");
-    // Mock for the DELETE logout request
-    // This ensures that a DELETE to /gdc/account/login/profileId returns HTTP 204 (No Content)
         onRequest()
             .havingMethodEqualTo("DELETE")
             .havingPathEqualTo("/gdc/account/login/profileId")
             .respond()
             .withStatus(204);
-    // Mock for the GET request after redirect
-    // This ensures GET on REDIRECT_PATH returns 200 with a valid JSON body
-        onRequest()
-            .havingMethodEqualTo("GET")
-            .havingPathEqualTo(REDIRECT_PATH)
-            .respond()
-            .withStatus(200)
-            .withBody(BODY_PROJECTS)
-            .withEncoding(CHARSET)
-            .withContentType(CONTENT_TYPE_JSON_UTF);
 
         final GoodDataHttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
 
         try {
-            // Perform the GET request and expect HTTP 200 OK
-            performGet(client, jadlerHost, REDIRECT_PATH, HttpStatus.SC_OK);
+            // Request to GDC_PROJECTS_PATH will trigger 401, authenticate, then return 200
+            performGet(client, jadlerHost, GDC_PROJECTS_PATH, HttpStatus.SC_OK);
         } catch (IOException e) {
             throw new RuntimeException("GET request failed", e);
         }
 
-    // Test the logout operation and expect HTTP 204 No Content
+        // Now logout - SST and TT should be set from the authentication above
         logout(client, jadlerHost, "profileId", HttpStatus.SC_NO_CONTENT);
     }
 

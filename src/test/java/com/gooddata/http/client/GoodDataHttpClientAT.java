@@ -29,7 +29,7 @@ public class GoodDataHttpClientAT {
     private final HttpHost httpHost = new HttpHost("https", System.getProperty("GDC_BACKEND", "secure.gooddata.com"), 443);
 
     @Test
-    public void gdcLogin() throws IOException {
+    public void gdcLogin() throws IOException, org.apache.hc.core5.http.HttpException {
         // Modern style: use TestUtils.createGoodDataClient, returns a GoodDataHttpClient wrapper
         final GoodDataHttpClient client = createGoodDataClient(login, password, httpHost);
         // performGet expects GoodDataHttpClient, uses execute() with a lambda (see TestUtils)
@@ -37,7 +37,7 @@ public class GoodDataHttpClientAT {
     }
 
     @Test
-    public void gdcSstSimple() throws IOException {
+    public void gdcSstSimple() throws IOException, org.apache.hc.core5.http.HttpException {
         final HttpClient httpClient = HttpClients.createDefault();
         final LoginSSTRetrievalStrategy loginSSTRetrievalStrategy = new LoginSSTRetrievalStrategy(login, password);
         final String sst = loginSSTRetrievalStrategy.obtainSst(httpClient, httpHost);
@@ -52,7 +52,7 @@ public class GoodDataHttpClientAT {
     private static final Pattern profilePattern = Pattern.compile("\"/gdc/account/profile/([^\"]+)\"");
 
     @Test
-    public void gdcLogout() throws IOException {
+    public void gdcLogout() throws IOException, org.apache.hc.core5.http.HttpException {
         final GoodDataHttpClient client = createGoodDataClient(login, password, httpHost);
         final String response = getForEntity(client, httpHost, "/gdc/account/profile/current", HttpStatus.SC_OK);
         final Matcher matcher = profilePattern.matcher(response);
