@@ -4,14 +4,12 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
-
 /**
  * GoodData authentication exception.
  */
 public class GoodDataAuthException extends RuntimeException {
 
     public GoodDataAuthException() { }
-
     public GoodDataAuthException(String message) {
         super(message);
     }

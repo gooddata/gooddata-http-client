@@ -4,8 +4,6 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
-
-
 import static com.gooddata.http.client.TestUtils.createGoodDataClient;
 import static com.gooddata.http.client.TestUtils.logout;
 import static com.gooddata.http.client.TestUtils.performGet;
@@ -16,20 +14,16 @@ import static net.jadler.Jadler.port;
 import static net.jadler.Jadler.verifyThatRequest;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import net.jadler.Request;
 import net.jadler.stubbing.RequestStubbing;
 import net.jadler.stubbing.Responder;
 import net.jadler.stubbing.ResponseStubbing;
 import net.jadler.stubbing.StubResponse;
-
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
@@ -40,31 +34,24 @@ import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("squid:S2699")
 public class GoodDataHttpClientIntegrationTest {
-
     private static final String GDC_TOKEN_PATH = "/gdc/account/token";
     private static final String GDC_LOGIN_PATH = "/gdc/account/login";
     private static final String GDC_PROJECTS_PATH = "/gdc/projects";
     private static final String GDC_PROJECTS2_PATH = "/gdc/projects2";
     private static final String REDIRECT_PATH = "/redirect/to/projects";
-
     private static final String SST_HEADER = "X-GDC-AuthSST";
     private static final String WWW_AUTHENTICATE_HEADER = "WWW-Authenticate";
     private static final String ACCEPT_HEADER = "Accept";
     private static final String CONTENT_HEADER = "Content-Type";
     private static final String TT_HEADER = "X-GDC-AuthTT";
-
     private static final String GOODDATA_REALM = "GoodData realm=\"GoodData API\"";
     private static final String TT_COOKIE = "cookie=GDCAuthTT";
-
     private static final String BODY_401 = "<html><head><title>401 Authorization Required</title></head><body><p>This server could not verify that you are authorized to access the document requested.  Either you supplied the wrong credentials (e.g., bad password), or your browser doesn't understand how to supply the credentials required.Please see <a href=\"https://help.gooddata.com/display/developer/API+Reference#/reference/authentication/log-in\">Authenticating to the GoodData API</a> for details.</p></body></html>";
     private static final String BODY_PROJECTS = "{\"about\":{\"summary\":\"Project Resources\",\"category\":\"Projects\",\"links\":[]}}";
     private static final String BODY_TOKEN_401 = "{\"parameters\":[],\"component\":\"Account::Token\",\"message\":\"/gdc/account/login\"}";
-
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_JSON_UTF = "application/json; charset=UTF-8";
-
     private static final Charset CHARSET = Charset.forName("UTF-8");
-
     private String jadlerLogin;
     private String jadlerPassword;
     private HttpHost jadlerHost;
@@ -106,7 +93,6 @@ public class GoodDataHttpClientIntegrationTest {
 
     @Test
     public void getProjectOkloginAndTtRefresh() throws Exception {
-
         onRequest()
         .havingMethodEqualTo("GET")
         .havingPathEqualTo(REDIRECT_PATH)
@@ -116,15 +102,11 @@ public class GoodDataHttpClientIntegrationTest {
             .withEncoding(CHARSET)
             .withContentType(CONTENT_TYPE_JSON_UTF);
 
-            
         mock401OnProjects();
         mock200OnProjects();
-
         mock401OnToken();
         mock200OnToken();
-
         mockLogin();
-
         final GoodDataHttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
 
         try {
@@ -132,14 +114,9 @@ public class GoodDataHttpClientIntegrationTest {
         } catch (IOException e) {
             throw new RuntimeException("GET request failed", e);
         }
-
     }
 
-
-
-
     private final class PerformGetWithCountDown implements Runnable {
-
         private final GoodDataHttpClient client;
         private final String path;
         private final CountDownLatch countDown;
@@ -164,7 +141,6 @@ public class GoodDataHttpClientIntegrationTest {
 
     @Test
     public void redirect() throws IOException, org.apache.hc.core5.http.HttpException {
-        
         onRequest()
             .havingMethodEqualTo("GET")
             .havingPathEqualTo(REDIRECT_PATH)
@@ -181,11 +157,8 @@ public class GoodDataHttpClientIntegrationTest {
             .withEncoding(CHARSET)
             .withContentType(CONTENT_TYPE_JSON_UTF);
 
-
-
         mock401OnToken();
         mock200OnToken();
-
         mockLogin();
 
         final GoodDataHttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
@@ -195,8 +168,6 @@ public class GoodDataHttpClientIntegrationTest {
         } catch (IOException e) {
             throw new RuntimeException("GET request failed", e);
         }
-
-        
     }
 
     @Test
@@ -224,12 +195,9 @@ public class GoodDataHttpClientIntegrationTest {
         // Setup mocks to trigger authentication, then test logout
         mock401OnProjects();
         mock200OnProjects();
-        
         mock401OnToken();
         mock200OnToken();
-
         mockLogin();
-
         mockLogout("profileId");
         onRequest()
             .havingMethodEqualTo("DELETE")
@@ -238,14 +206,12 @@ public class GoodDataHttpClientIntegrationTest {
             .withStatus(204);
 
         final GoodDataHttpClient client = createGoodDataClient(jadlerLogin, jadlerPassword, jadlerHost);
-
         try {
             // Request to GDC_PROJECTS_PATH will trigger 401, authenticate, then return 200
             performGet(client, jadlerHost, GDC_PROJECTS_PATH, HttpStatus.SC_OK);
         } catch (IOException e) {
             throw new RuntimeException("GET request failed", e);
         }
-
         // Now logout - SST and TT should be set from the authentication above
         logout(client, jadlerHost, "profileId", HttpStatus.SC_NO_CONTENT);
     }
@@ -263,9 +229,6 @@ public class GoodDataHttpClientIntegrationTest {
                 .withEncoding(CHARSET)
                 .withContentType(CONTENT_TYPE_JSON_UTF);
     }
-
-
-
 
     private static RequestStubbing requestOnPath(String url, String tt) {
         final RequestStubbing requestStubbing = onRequest()
@@ -285,7 +248,6 @@ public class GoodDataHttpClientIntegrationTest {
         mock200OnPath(GDC_PROJECTS_PATH, tt);
     }
 
-
     private static void mock200OnPath(String url, String tt) {
         onRequest()
             .havingMethodEqualTo("GET")
@@ -299,9 +261,6 @@ public class GoodDataHttpClientIntegrationTest {
                     .build();
             });
     }
-
-
-
 
     private static void mock401OnToken() {
         onRequest()
@@ -360,5 +319,4 @@ public class GoodDataHttpClientIntegrationTest {
             .respond()
                 .withStatus(204);
     }
-
 }

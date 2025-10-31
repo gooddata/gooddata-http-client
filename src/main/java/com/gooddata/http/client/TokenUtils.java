@@ -4,22 +4,16 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
-
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.ClassicHttpResponse;
-
-
 import static com.gooddata.http.client.GoodDataHttpClient.SST_HEADER;
 import static com.gooddata.http.client.GoodDataHttpClient.TT_HEADER;
 import static org.apache.commons.lang3.Validate.notNull;
-
 /**
  * Contains handy methods for working with SST and TT tokens.
  */
 class TokenUtils {
-
     private TokenUtils() {}
-
     static String extractSST(final ClassicHttpResponse response) {
         return extractToken(response, SST_HEADER);
     }

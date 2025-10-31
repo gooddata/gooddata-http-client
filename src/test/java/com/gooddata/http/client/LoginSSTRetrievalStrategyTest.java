@@ -4,7 +4,6 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.ClassicHttpResponse;
@@ -15,7 +14,6 @@ import org.apache.hc.core5.http.message.StatusLine;
 import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
-
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
@@ -24,14 +22,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
-
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URISyntaxException;
-
 import static com.gooddata.http.client.GoodDataHttpClient.SST_HEADER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -45,14 +40,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class LoginSSTRetrievalStrategyTest {
-
     private static final String FAILURE_REASON = "Bad username or password";
     private static final String REQUEST_ID = "requestIdTest";
     private static final String PASSWORD = "mysecret";
     private static final String LOGIN = "user@server.com";
     private static final String SST = "xxxtopsecretSST";
     private static final String TT = "xxxtopsecretTT";
-
     private LoginSSTRetrievalStrategy sstStrategy;
     private AutoCloseable mockClass;
 
@@ -91,14 +84,10 @@ public class LoginSSTRetrievalStrategyTest {
                 return handler.handleResponse(response);
             });
 
-
         assertEquals(SST, sstStrategy.obtainSst(httpClient, host));
-
         final ArgumentCaptor<HttpHost> hostCaptor = ArgumentCaptor.forClass(HttpHost.class);
         final ArgumentCaptor<HttpPost> postCaptor = ArgumentCaptor.forClass(HttpPost.class);
-
         verify(httpClient).execute(hostCaptor.capture(), postCaptor.capture(), any(org.apache.hc.core5.http.io.HttpClientResponseHandler.class));
-
         assertEquals("server.com", hostCaptor.getValue().getHostName());
         assertEquals(123, hostCaptor.getValue().getPort());
 
@@ -125,7 +114,6 @@ public class LoginSSTRetrievalStrategyTest {
             return handler.handleResponse(response);
         });
 
-
     assertThrows(GoodDataAuthException.class, () -> sstStrategy.obtainSst(httpClient, host));
     }
 
@@ -142,23 +130,17 @@ public class LoginSSTRetrievalStrategyTest {
             return handler.handleResponse(response);
         });
 
-
-
         sstStrategy.logout(httpClient, host, "/gdc/account/login/profileid", SST, TT);
-
         final ArgumentCaptor<HttpHost> hostCaptor = ArgumentCaptor.forClass(HttpHost.class);
         final ArgumentCaptor<HttpDelete> deleteCaptor = ArgumentCaptor.forClass(HttpDelete.class);
-
         verify(httpClient).execute(
             hostCaptor.capture(),
             deleteCaptor.capture(),
             any(HttpClientResponseHandler.class)
         );
 
-
         assertEquals("server.com", hostCaptor.getValue().getHostName());
         assertEquals(123, hostCaptor.getValue().getPort());
-
         final HttpDelete delete = deleteCaptor.getValue();
         assertNotNull(delete);
         assertEquals("/gdc/account/login/profileid", delete.getUri().getPath());    
@@ -185,7 +167,6 @@ public class LoginSSTRetrievalStrategyTest {
         );
     }
 
-
     @Test
     void logLoginFailureRequestId() throws Exception {
         prepareLoginFailureResponse();
@@ -196,8 +177,6 @@ public class LoginSSTRetrievalStrategyTest {
         verify(logger).info(logMessageCaptor.capture());
         assertThat("Missing requestId at the log message", logMessageCaptor.getValue(), containsString(REQUEST_ID));
     }
-
-
 
     @Test
     public void logLoginFailureReason() throws Exception{
@@ -233,5 +212,4 @@ public class LoginSSTRetrievalStrategyTest {
 
         sstStrategy.setLogger(logger);
     }
-
 }

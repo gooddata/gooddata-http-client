@@ -4,23 +4,17 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
-
 import static org.apache.commons.lang3.Validate.notNull;
-
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.client5.http.classic.HttpClient;
-
 import java.io.IOException;
-
 /**
  * Provides super-secure token (SST).
  * This class is intended only for limited use mostly in tests and similar situations, since it doesn't know where the SST came from,
  * it is not capable to perform proper logout (implemented as noop).
  */
 public class SimpleSSTRetrievalStrategy implements SSTRetrievalStrategy {
-
     private final String sst;
-
     /**
      * Creates new instance.
      * @param sst super-secure token (SST)
@@ -49,6 +43,4 @@ public class SimpleSSTRetrievalStrategy implements SSTRetrievalStrategy {
     public void logout(HttpClient httpClient, HttpHost httpHost, String url, String sst, String tt) throws IOException, GoodDataLogoutException {
         // does nothing
     }
-
-
 }

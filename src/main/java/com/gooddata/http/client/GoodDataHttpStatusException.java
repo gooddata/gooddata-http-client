@@ -4,7 +4,6 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
-
 /**
  * Exception thrown when HTTP operations fail with specific status codes.
  * This exception wraps HTTP status information to provide detailed error context.

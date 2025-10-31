@@ -4,7 +4,6 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
-
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
@@ -14,7 +13,6 @@ import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,9 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.stubbing.Answer;
-
 import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,14 +34,10 @@ import java.lang.reflect.Field;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.message.BasicHeader;
 
-
-
-
 public class GoodDataHttpClientTest {
 
     private static final String TT = "cookieTt";
     private static final String SST = "SST";
-
     private GoodDataHttpClient goodDataHttpClient;
 
     @Mock
@@ -67,11 +59,8 @@ public class GoodDataHttpClientTest {
 
     @Mock
     private CloseableHttpResponse response401;
-
     private HttpHost host;
-
     private HttpGet get;
-
     private AutoCloseable mocks;
 
     @BeforeEach
@@ -96,7 +85,7 @@ public class GoodDataHttpClientTest {
         when(sstChallengeResponse.getFirstHeader(anyString()))
             .thenReturn(new BasicHeader("WWW-Authenticate", "cookie=GDCAuthSST"));
         when(sstChallengeResponse.getEntity()).thenReturn(null);
-        // English comment: sstChallengeResponse should always be a Mockito mock so you can use it everywhere as CloseableHttpResponse.
+        // sstChallengeResponse is a Mockito mock to allow flexible usage as CloseableHttpResponse
 
         // Configure ttChallengeResponse to simulate 401 Unauthorized with TT challenge header
         when(ttChallengeResponse.getCode()).thenReturn(401);
@@ -128,16 +117,10 @@ public class GoodDataHttpClientTest {
         // Other configuration as needed...
     }
 
-
-
-
-
-
     @AfterEach
     void tearDown() throws Exception {
         mocks.close();
     }
-
 
     @Test
     public void execute_sstExpired() throws Exception {
@@ -151,10 +134,10 @@ public class GoodDataHttpClientTest {
         when(ttRefreshedResponse.getFirstHeader("X-GDC-AuthTT"))
             .thenReturn(ttHeader);
 
-        // English comment: The test expects three calls:
-        // 1 - /url (returns 401 TT challenge)
-        // 2 - /gdc/account/token (returns 200, TT refreshed)
-        // 3 - /url (re-tried, returns 200 OK)
+        // The test expects three calls:
+        // 1. /url (returns 401 TT challenge)
+        // 2. /gdc/account/token (returns 200, TT refreshed)
+        // 3. /url (retry after auth, returns 200 OK)
         final int[] count = {0};
         when(httpClient.execute(
             any(HttpHost.class),
@@ -192,11 +175,8 @@ public class GoodDataHttpClientTest {
         ClassicHttpResponse result = goodDataHttpClient.execute(host, get);
 
         assertEquals(okResponse, result);
-        assertEquals(3, count[0]); // English comment: There should be exactly 3 httpClient.execute calls!
+        assertEquals(3, count[0]); // Verify exactly 3 httpClient.execute calls occurred
     }
-
-
-
 
     @SuppressWarnings("unchecked")
     @Test
@@ -229,9 +209,6 @@ public class GoodDataHttpClientTest {
         assertTrue(ex.getMessage().contains("Unable to obtain TT after successfully obtained SST"));
     }
 
-
-
-
     @SuppressWarnings("unchecked")
     @Test
     public void execute_unableObtainTTafterSuccessfullSstObtained() throws IOException {
@@ -257,11 +234,9 @@ public class GoodDataHttpClientTest {
             GoodDataAuthException.class,
             () -> goodDataHttpClient.execute(host, get)
         );
-        // Можно проверить текст:
+        // Verify the exception message contains the expected text
         assertTrue(ex.getMessage().contains("Unable to obtain TT"));
     }
-
-
 
     @SuppressWarnings("unchecked")
     @Test
@@ -282,7 +257,6 @@ public class GoodDataHttpClientTest {
             .execute(eq(host), any(ClassicHttpRequest.class), (HttpContext) isNull(), any(HttpClientResponseHandler.class));
     }
 
-
     /*
      * No TT or SST refresh needed.
      */
@@ -295,14 +269,11 @@ public class GoodDataHttpClientTest {
                 HttpClientResponseHandler<?> handler = invocation.getArgument(3);
                 return handler.handleResponse(okResponse);
             });
-
         assertEquals(okResponse, goodDataHttpClient.execute(host, get));
-
         verifyNoInteractions(sstStrategy);
         verify(httpClient, only())
             .execute(eq(host), eq(get), (HttpContext) isNull(), any(HttpClientResponseHandler.class));
     }
-
 
     @SuppressWarnings("unchecked")
     @Test
@@ -329,18 +300,12 @@ public class GoodDataHttpClientTest {
                 }
             });
 
-
-
         // 2. Mock SST (login) retrieval to always return SST:
         when(sstStrategy.obtainSst(httpClient, host)).thenReturn(SST);
-
         final String logoutUrl = "/gdc/account/login/1";
-
         // 3. Mock logout to throw GoodDataLogoutException (this is what the test is verifying!):
-
         doThrow(new GoodDataLogoutException("Logout unsuccessful", 401, "Unauthorized"))
             .when(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUrl), eq(SST), eq(TT));
-
 
         Field ttField = GoodDataHttpClient.class.getDeclaredField("tt");
         ttField.setAccessible(true);
@@ -362,8 +327,6 @@ public class GoodDataHttpClientTest {
         // 5. Verify that logout was actually called with the correct parameters:
         verify(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUrl), eq(SST), eq(TT));
     }
-
-
 
     @SuppressWarnings("unchecked")
     @Test
@@ -388,7 +351,6 @@ public class GoodDataHttpClientTest {
             });
 
         when(sstStrategy.obtainSst(httpClient, host)).thenReturn(SST);
-
         Field ttField = GoodDataHttpClient.class.getDeclaredField("tt");
         ttField.setAccessible(true);
         ttField.set(goodDataHttpClient, TT);    
@@ -405,12 +367,10 @@ public class GoodDataHttpClientTest {
         verify(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUri), eq(SST), eq(TT));
     }
 
-
-
     @SuppressWarnings("unchecked")
     @Test
     public void execute_logoutFailed() throws Exception {
-        // English comment: Prepare the mock sequence for httpClient.execute as in the working tests
+        // Prepare the mock sequence for httpClient.execute
         when(httpClient.execute(eq(host), any(ClassicHttpRequest.class), (HttpContext) isNull(), any(HttpClientResponseHandler.class)))
             .thenAnswer(new Answer<Object>() {
                 private int count = 0;
@@ -444,7 +404,7 @@ public class GoodDataHttpClientTest {
         doThrow(new GoodDataLogoutException("msg", 400, "bad request"))
             .when(sstStrategy).logout(eq(httpClient), eq(host), eq(logoutUrl), eq(SST), eq(TT));
 
-        // English comment: Now, when execute is called, it will try to logout with SST/TT, which is mocked to throw!
+        // When execute is called, it will attempt logout with SST/TT, which is mocked to throw
         GoodDataHttpStatusException ex = assertThrows(
             GoodDataHttpStatusException.class,
             () -> goodDataHttpClient.execute(host, new org.apache.hc.client5.http.classic.methods.HttpDelete(logoutUrl))
@@ -452,6 +412,4 @@ public class GoodDataHttpClientTest {
         assertEquals(400, ex.getCode());
         assertEquals("bad request", ex.getReason());
     }
-
-
 }

@@ -10,13 +10,11 @@ import static com.gooddata.http.client.GoodDataHttpClient.TT_HEADER;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.Validate.notEmpty;
 import static org.apache.commons.lang3.Validate.notNull;
-
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpStatus;
-
 import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
@@ -24,35 +22,21 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
-
-
-
-
-
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 
 /**
  * This strategy obtains super-secure token via login and password.
  */
 public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
-
     private static final String X_GDC_REQUEST_HEADER_NAME = "X-GDC-REQUEST";
-
     public static final String LOGIN_URL = "/gdc/account/login";
-
     /** SST and TT must be present in the HTTP header. */
     private static final int VERIFICATION_LEVEL = 2;
-
     private Logger log = LoggerFactory.getLogger(getClass());
-
     private final String login;
-
     private final String password;
-
     private final HttpHost httpHost;
 
     /**
@@ -109,12 +93,9 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
                     throw new GoodDataAuthException(message);
                 }
                 // todo TT is present at response as well - extract it to save one HTTP call
-                
                 String sst = TokenUtils.extractSST(response);
-
                 return sst;
             };
-
             return httpClient.execute(httpHost, postLogin, responseHandler);
 
         } catch (GoodDataAuthException e) {
@@ -126,7 +107,6 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
             postLogin.reset();
         }
     }
-
 
     private String getMessage(final ClassicHttpResponse response) throws IOException {
         // Try to extract the request ID from the response headers
@@ -141,7 +121,6 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
         } catch (Exception e) {
             reason = "Failed to parse response body: " + e.getMessage();
         }
-
         // Return a formatted error message with the reason, HTTP status code, and request ID
         return format(
             "Unable to login reason='%s'. Request tracking details httpStatus=%s requestId=%s",
@@ -152,19 +131,15 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
     @Override
     public void logout(final HttpClient httpClient, final HttpHost httpHost, final String url, final String sst, final String tt)
             throws IOException, GoodDataLogoutException {
-
         notNull(httpClient, "client can't be null");
         notNull(httpHost, "host can't be null");
         notEmpty(url, "url can't be empty");
         notEmpty(sst, "SST can't be empty");
         notEmpty(tt, "TT can't be empty");
-
-        log.debug("performing logout");
         final HttpDelete request = new HttpDelete(url);
         try {
             request.addHeader(SST_HEADER, sst);
             request.addHeader(TT_HEADER, tt);
-
             org.apache.hc.core5.http.io.HttpClientResponseHandler<Void> handler = response -> {
                 if (response.getCode() != HttpStatus.SC_NO_CONTENT) {
                     throw new IOException(new GoodDataLogoutException("Logout unsuccessful using http",
@@ -186,9 +161,7 @@ public class LoginSSTRetrievalStrategy implements SSTRetrievalStrategy {
         }
     }
 
-
     void setLogger(Logger log) {
         this.log = log;
     }
-
 }
