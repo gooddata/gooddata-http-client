@@ -4,15 +4,11 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import org.junit.jupiter.api.Test;
-
 @SuppressWarnings("squid:S2699")
 public class SimpleSSTRetrievalStrategyTest {
-
     public static final String TOKEN = "sst token";
 
     @Test

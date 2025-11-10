@@ -8,45 +8,43 @@ This project includes a number of subcomponents with separate copyright notices 
 ================================================================================
 DEPENDENCIES
 
-- Apache Commons Codec (1.11) [Apache-2.0, BSD-3-Clause]
 - Apache Commons Lang (3.12.0) [Apache-2.0]
-- Apache Log4j (1.2.17) [Apache-2.0]
-- Byte Buddy (without dependencies) (1.11.13) [BSD-3-Clause, Apache-2.0]
-- Byte Buddy agent (1.11.13) [Apache-2.0]
-- Commons Logging (1.2) [Apache-2.0]
+- Apache Commons Text (1.10.0) [Apache-2.0]
+- Apache HttpClient 5 (5.5) [Apache-2.0]
+- Apache HttpCore 5 (5.3.4) [Apache-2.0]
+- Apache HttpCore 5 H2 (5.3.4) [Apache-2.0]
+- Byte Buddy (without dependencies) (1.14.4) [Apache-2.0]
+- Byte Buddy agent (1.14.4) [Apache-2.0]
 - commons-collections (3.2.2) [Apache-2.0]
 - commons-io (2.11.0) [Apache-2.0]
+- commons-lang (2.6) [Apache-2.0]
 - Hamcrest (2.2) [BSD-3-Clause]
-- Hamcrest Core (1.3) [BSD-3-Clause]
-- Hamcrest library (1.3) BSD-3-Clause]
-- HttpClient (4.5.13) [Apache-2.0]
-- HttpCore (4.4.14) [Apache-2.0]
-- Jackson-annotations (2.13.0) [Apache-2.0]
-- Jackson-core (2.13.0) [Apache-2.0]
-- jackson-databind (2.13.0) [Apache-2.0]
-- jadler-all (1.3.0) [MIT]
-- jadler-core (1.3.0) [MIT]
-- jadler-jetty (1.3.0) [MIT]
-- jadler-junit (1.3.0) [MIT]
+- Jackson-annotations (2.14.2) [Apache-2.0]
+- Jackson-core (2.14.2) [Apache-2.0]
+- jackson-databind (2.14.2) [Apache-2.0]
+- jadler-core (1.3.1) [MIT]
+- jadler-jetty (1.3.1) [MIT]
 - Jetty :: Continuation (8.1.11.v20130520) [Multi-license: EPL-1.0 OR Apache-2.0]
 - Jetty :: Http Utility (8.1.11.v20130520) [Multi-license: EPL-1.0 OR Apache-2.0]
 - Jetty :: IO Utility (8.1.11.v20130520) [Multi-license: EPL-1.0 OR Apache-2.0]
 - Jetty :: Server Core (8.1.11.v20130520) [Multi-license: EPL-1.0 OR Apache-2.0]
 - Jetty :: Utilities (8.1.11.v20130520) [Multi-license: EPL-1.0 OR Apache-2.0, MIT]
 - Jetty Orbit :: Servlet API (3.0.0.v201112011016) [Multi-license: CDDL-1.0 OR GPL-2.0-with-classpath-exception, EPL-1.0, Apache-2.0]
-- JUnit (4.13.2) [CPL-1.0]
-- Lang (2.6) [Apache-2.0]
-- Mockito (3.12.4) [MIT, Apache-2.0]
-- Objenesis (3.2) [MIT]
-- SLF4J API Module (1.7.32) [MIT]
-- SLF4J LOG4J-12 Binding relocated (1.7.32) [MIT]
+- JUnit Jupiter API (5.10.2) [EPL-2.0]
+- JUnit Jupiter Engine (5.10.2) [EPL-2.0]
+- Mockito Core (5.3.1) [MIT]
+- Objenesis (3.3) [Apache-2.0]
+- SLF4J API Module (2.0.7) [MIT]
+- SLF4J Simple Binding (2.0.7) [MIT]
 
 APPENDIX: LICENSES
 Apache-2.0
+BSD-3-Clause
 CDDL-1.0
-CPL-1.0
 EPL-1.0
+EPL-2.0
 GPL-2.0-with-classpath-exception
+MIT
 [End of Table of Contents]
 
 ================================================================================
@@ -56,13 +54,10 @@ DEPENDENCIES
 --------------------------------------------------------------------------------
 Apache Commons Codec (1.11)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
  
-
 * Other Licenses *
 Apache-2.0, BSD-3-Clause
-
 
 Copyright 2022, Apache Commons Codec Contributors
 
@@ -77,7 +72,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 See the License for the specific language governing permissions and limitations under the License.
-
 
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -97,28 +91,18 @@ See the License for the specific language governing permissions and limitations 
 /*
  * Some portions of this file Copyright (c) 2004-2006 Intel Corportation
  * and licensed under the BSD license.
-
-
 --------------------------------------------------------------------------------
 Apache Commons Lang (3.12.0)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 Apache-2.0
-
-
-
-
 --------------------------------------------------------------------------------
 Apache Log4j (1.2.17)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 Apache-2.0
-
 Apache log4j
 Copyright 2007 The Apache Software Foundation
-
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 ------------
@@ -136,19 +120,12 @@ The Apache Software Foundation (http://www.apache.org/).
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-
-
 --------------------------------------------------------------------------------
 Byte Buddy (without dependencies) (1.11.13)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
- 
-
 * Other Licenses *
 BSD-3-Clause, Apache-2.0
-
-
 // ASM: a very small and fast Java bytecode manipulation framework
 // Copyright (c) 2000-2011 INRIA, France Telecom
 // All rights reserved.
@@ -177,7 +154,6 @@ BSD-3-Clause, Apache-2.0
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-
  * Copyright 2014 - Present Rafael Winterhalter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -196,44 +172,26 @@ BSD-3-Clause, Apache-2.0
 --------------------------------------------------------------------------------
 Byte Buddy agent (1.11.13)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 Apache-2.0
-
-
 --------------------------------------------------------------------------------
 Commons Logging (1.2)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 Apache-2.0
-
-
-                     
 --------------------------------------------------------------------------------
 commons-collections (3.2.2)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 Apache-2.0
-
-
 --------------------------------------------------------------------------------
 commons-io (2.11.0)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 Apache-2.0
-
-
-
-
-
-
 --------------------------------------------------------------------------------
 Hamcrest (2.2)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 BSD-3-Clause
 
@@ -263,12 +221,9 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
 --------------------------------------------------------------------------------
 Hamcrest Core (1.3)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 BSD-3-Clause
 
@@ -303,10 +258,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------
 Hamcrest library (1.3)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
  BSD-3-clause
-
 BSD License
 
 Copyright (c) 2000-2015 www.hamcrest.org
@@ -338,56 +291,31 @@ DAMAGE.
 --------------------------------------------------------------------------------
 HttpClient (4.5.13)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 Apache-2.0
-
-
-                         
-
 --------------------------------------------------------------------------------
 HttpCore (4.4.14)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 Apache-2.0
-
-
-
-
 --------------------------------------------------------------------------------
 Jackson-annotations (2.13.0)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 Apache-2.0
-
-
-
-
 --------------------------------------------------------------------------------
 Jackson-core (2.13.0)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 Apache-2.0
-
-
-
-
 --------------------------------------------------------------------------------
 jackson-databind (2.13.0)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 Apache-2.0
-
-
-
 --------------------------------------------------------------------------------
 jadler-all (1.3.0)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 MIT
 
@@ -409,12 +337,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
 
 --------------------------------------------------------------------------------
 jadler-core (1.3.0)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 MIT
 
@@ -436,12 +362,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
 --------------------------------------------------------------------------------
 jadler-jetty (1.3.0)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 MIT
 
@@ -463,12 +386,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
 --------------------------------------------------------------------------------
 jadler-junit (1.3.0)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 MIT
 
@@ -490,18 +410,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
 --------------------------------------------------------------------------------
 Jetty :: Continuation (8.1.11.v20130520)
 --------------------------------------------------------------------------------
-
-* Declared Licenses *
- 
-
+* Declared Licenses
 * Other Licenses *
 Multi-license: EPL-1.0 OR Apache-2.0
-
 
  Copyright (c) 1995-2013 Mort Bay Consulting Pty. Ltd.
 //  ------------------------------------------------------------------------
@@ -516,18 +430,12 @@ Multi-license: EPL-1.0 OR Apache-2.0
 //      http://www.opensource.org/licenses/apache2.0.php
 //
 //  You may elect to redistribute this code under either of these licenses.
-
-
 --------------------------------------------------------------------------------
 Jetty :: Http Utility (8.1.11.v20130520)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
- 
-
 * Other Licenses *
 Multi-license: EPL-1.0 OR Apache-2.0
-
 
 //  Copyright (c) 1995-2013 Mort Bay Consulting Pty. Ltd.
 //  ------------------------------------------------------------------------
@@ -542,18 +450,12 @@ Multi-license: EPL-1.0 OR Apache-2.0
 //      http://www.opensource.org/licenses/apache2.0.php
 //
 //  You may elect to redistribute this code under either of these licenses.
-
-
 --------------------------------------------------------------------------------
 Jetty :: IO Utility (8.1.11.v20130520)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
- 
-
 * Other Licenses *
 Multi-license: EPL-1.0 OR Apache-2.0
-
 
 //  Copyright (c) 1995-2013 Mort Bay Consulting Pty. Ltd.
 //  ------------------------------------------------------------------------
@@ -573,14 +475,10 @@ Multi-license: EPL-1.0 OR Apache-2.0
 --------------------------------------------------------------------------------
 Jetty :: Server Core (8.1.11.v20130520)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
- 
-
 * Other Licenses *
 Multi-license: EPL-1.0 OR Apache-2.0
 
-
 //  Copyright (c) 1995-2013 Mort Bay Consulting Pty. Ltd.
 //  ------------------------------------------------------------------------
 //  All rights reserved. This program and the accompanying materials
@@ -594,18 +492,12 @@ Multi-license: EPL-1.0 OR Apache-2.0
 //      http://www.opensource.org/licenses/apache2.0.php
 //
 //  You may elect to redistribute this code under either of these licenses.
-
-
 --------------------------------------------------------------------------------
 Jetty :: Utilities (8.1.11.v20130520)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
- 
-
 * Other Licenses *
 Multi-license: EPL-1.0 OR Apache-2.0, MIT
-
 
 //  Copyright (c) 1995-2013 Mort Bay Consulting Pty. Ltd.
 //  ------------------------------------------------------------------------
@@ -620,7 +512,6 @@ Multi-license: EPL-1.0 OR Apache-2.0, MIT
 //      http://www.opensource.org/licenses/apache2.0.php
 //
 //  You may elect to redistribute this code under either of these licenses.
-
 
 * License information for Bjoern Hoehrmann's code:
  *
@@ -635,19 +526,12 @@ Multi-license: EPL-1.0 OR Apache-2.0, MIT
  * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **/
-
-
 --------------------------------------------------------------------------------
 Jetty Orbit :: Servlet API (3.0.0.v201112011016)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
- 
-
 * Other Licenses *
 Multi-license: CDDL-1.0 OR GPL-2.0-with-classpath-exception, EPL-1.0, Apache-2.0
-
-
 
 DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
@@ -705,8 +589,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-
-
 >The Eclipse Foundation makes available all content in this plug-in (&quot;Content&quot;).  Unless otherwise 
 indicated below, the Content is provided to you under the terms and conditions of the
 Eclipse Public License Version 1.0 (&quot;EPL&quot;).  A copy of the EPL is available 
@@ -752,18 +634,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 See the License for the specific language governing permissions and limitations under the License.
 
-
 --------------------------------------------------------------------------------
 JUnit (4.13.2)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 CPL-1.0
-
 --------------------------------------------------------------------------------
 Lang (2.6)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 Apache-2.0
 
@@ -782,18 +660,11 @@ Licensed to the Apache Software Foundation (ASF) under one or more
  * See the License for the specific language governing permissions and
  * limitations under the License.
 
-
 --------------------------------------------------------------------------------
-Mockito (3.12.4)
---------------------------------------------------------------------------------
-
+Mockito (3.12.4)--------------------------------------------------------------------------------
 * Declared Licenses *
- 
-
 * Other Licenses *
 MIT, Apache-2.0
-
-
 The MIT License
 
 Copyright (c) 2007 Mockito contributors
@@ -830,12 +701,9 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 See the License for the specific language governing permissions and limitations under the License.
-
-
 --------------------------------------------------------------------------------
 Objenesis (3.2)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 MIT
 
@@ -857,12 +725,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
 --------------------------------------------------------------------------------
 SLF4J API Module (1.7.32)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 MIT
 
@@ -892,7 +757,6 @@ Copyright (c) 2004-2017 QOS.ch
 --------------------------------------------------------------------------------
 SLF4J LOG4J-12 Binding relocated (1.7.32)
 --------------------------------------------------------------------------------
-
 * Declared Licenses *
 MIT
 
@@ -914,13 +778,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
-
 ================================================================================
 APPENDIX: LICENSES
 ================================================================================
-
 * Apache-2.0 *
                                  Apache License
                            Version 2.0, January 2004

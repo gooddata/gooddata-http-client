@@ -4,12 +4,10 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
-
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 
 public class GoodDataLogoutExceptionMatcher extends BaseMatcher<GoodDataLogoutException> {
-
     private final int statusCode;
     private final String statusText;
 

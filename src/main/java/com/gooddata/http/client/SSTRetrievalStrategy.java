@@ -4,12 +4,9 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
-
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.client5.http.classic.HttpClient;
-
 import java.io.IOException;
-
 /**
  * Interface for class which encapsulates SST retrieval.
  */
@@ -22,7 +19,6 @@ public interface SSTRetrievalStrategy {
      * @param httpHost HTTP host
      */
     String obtainSst(final HttpClient httpClient, final HttpHost httpHost) throws IOException;
-
     /**
      * Performs the logout using given HTTP client, host and logout parameters.
      * Should throw {@link GoodDataLogoutException} in case of logout problem.

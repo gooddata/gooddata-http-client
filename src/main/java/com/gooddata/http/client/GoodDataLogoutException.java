@@ -4,7 +4,6 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
-
 /**
  * Should be thrown when logout is not successful or not possible.
  * Must be provided with statusCode and optionally statusText, which are used to construct http response, for logout request.
