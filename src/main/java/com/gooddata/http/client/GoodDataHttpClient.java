@@ -332,7 +332,21 @@ public class GoodDataHttpClient {
 
     public <T> T execute(HttpHost target, ClassicHttpRequest request, HttpContext context,
                         HttpClientResponseHandler<? extends T> responseHandler) throws IOException, org.apache.hc.core5.http.HttpException {
-        return httpClient.execute(target, request, context, responseHandler);
+        
+        if (responseHandler == null) {
+            throw new IllegalArgumentException("Response handler cannot be null");
+        }
+        
+        // First, execute with authentication (reuse existing logic from the other execute method)
+        ClassicHttpResponse response = this.execute(target, request, context);
+        
+        try {
+            // Then apply the response handler
+            return responseHandler.handleResponse(response);
+        } finally {
+            // Ensure response entity is properly consumed to release resources
+            EntityUtils.consumeQuietly(response.getEntity());
+        }
     }
     /**
      * Util for logout request check.

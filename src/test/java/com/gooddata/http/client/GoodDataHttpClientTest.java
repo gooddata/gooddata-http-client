@@ -412,4 +412,110 @@ public class GoodDataHttpClientTest {
         assertEquals(400, ex.getCode());
         assertEquals("bad request", ex.getReason());
     }
+
+    /**
+     * Test that execute() with ResponseHandler parameter applies authentication tokens.
+     * This verifies the fix for the critical bug where this method was bypassing authentication.
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    public void execute_withResponseHandler_appliesAuthentication() throws Exception {
+        // Prepare mock response
+        when(httpClient.execute(eq(host), any(ClassicHttpRequest.class), (HttpContext) isNull(), any(HttpClientResponseHandler.class)))
+            .thenAnswer(new Answer<Object>() {
+                @Override
+                public Object answer(org.mockito.invocation.InvocationOnMock invocation) throws Throwable {
+                    HttpClientResponseHandler<?> handler = invocation.getArgument(3);
+                    return handler.handleResponse(okResponse);
+                }
+            });
+
+        when(sstStrategy.obtainSst(httpClient, host)).thenReturn(SST);
+
+        // Set up authentication state by pre-populating TT token
+        Field ttField = GoodDataHttpClient.class.getDeclaredField("tt");
+        ttField.setAccessible(true);
+        ttField.set(goodDataHttpClient, TT);
+
+        Field sstField = GoodDataHttpClient.class.getDeclaredField("sst");
+        sstField.setAccessible(true);
+        sstField.set(goodDataHttpClient, SST);
+
+        // Create test request
+        HttpGet request = new HttpGet("/gdc/account/profile/current");
+
+        // Execute with ResponseHandler
+        String result = goodDataHttpClient.execute(host, request, null, response -> {
+            // Verify the response handler receives the response
+            assertEquals(200, response.getCode());
+            return "success";
+        });
+
+        // Verify result
+        assertEquals("success", result);
+
+        // Verify that X-GDC-AuthTT header was added to the request
+        // This verifies authentication was applied before sending the request
+        Header[] headers = request.getHeaders("X-GDC-AuthTT");
+        assertEquals(1, headers.length, "X-GDC-AuthTT header should be present");
+        assertEquals(TT, headers[0].getValue(), "X-GDC-AuthTT header should contain the token");
+    }
+
+    /**
+     * Test that execute() with ResponseHandler handles 401 responses by refreshing tokens.
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    public void execute_withResponseHandler_handles401WithTokenRefresh() throws Exception {
+        // Prepare mock sequence: first 401, then success after token refresh
+        when(httpClient.execute(eq(host), any(ClassicHttpRequest.class), (HttpContext) isNull(), any(HttpClientResponseHandler.class)))
+            .thenAnswer(new Answer<Object>() {
+                private int count = 0;
+                @Override
+                public Object answer(org.mockito.invocation.InvocationOnMock invocation) throws Throwable {
+                    HttpClientResponseHandler<?> handler = invocation.getArgument(3);
+                    count++;
+                    if (count == 1) {
+                        // First call returns 401
+                        return handler.handleResponse(ttChallengeResponse);
+                    } else if (count == 2) {
+                        // Token refresh call
+                        return handler.handleResponse(ttRefreshedResponse);
+                    } else {
+                        // Retry returns 200
+                        return handler.handleResponse(okResponse);
+                    }
+                }
+            });
+
+        when(sstStrategy.obtainSst(httpClient, host)).thenReturn(SST);
+
+        // Create test request
+        HttpGet request = new HttpGet("/gdc/account/profile/current");
+
+        // Execute with ResponseHandler (should handle 401 and retry)
+        String result = goodDataHttpClient.execute(host, request, null, response -> {
+            assertEquals(200, response.getCode(), "Should eventually receive 200 after token refresh");
+            return "success_after_refresh";
+        });
+
+        // Verify result
+        assertEquals("success_after_refresh", result);
+    }
+
+    /**
+     * Test that execute() with null ResponseHandler throws IllegalArgumentException.
+     */
+    @Test
+    public void execute_withNullResponseHandler_throwsException() throws Exception {
+        HttpGet request = new HttpGet("/gdc/account/profile/current");
+
+        // Execute with null ResponseHandler should throw
+        IllegalArgumentException ex = assertThrows(
+            IllegalArgumentException.class,
+            () -> goodDataHttpClient.execute(host, request, null, null)
+        );
+        
+        assertTrue(ex.getMessage().contains("Response handler cannot be null"));
+    }
 }
