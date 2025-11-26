@@ -1,9 +1,10 @@
 /*
- * (C) 2022 GoodData Corporation.
+ * (C) 2025 GoodData Corporation.
  * This source code is licensed under the BSD-style license found in the
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
+
 /**
  * Exception thrown when HTTP operations fail with specific status codes.
  * This exception wraps HTTP status information to provide detailed error context.

@@ -1,28 +1,33 @@
-# This workflow will build a Java project with Maven
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
-
 name: build
-
 on:
   push:
-    branches: [ master, /\d\.0\.0-RC/ ]
+    branches:
+      - master
+      - /\d\.0\.0-RC/
   pull_request:
-    branches: [ master, /\d\.0\.0-RC/ ]
-
+    branches:
+      - master
+      - /\d\.0\.0-RC/
 jobs:
-  build-test-coverage:
-
+  builds-tests-coverage:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'adopt'
-    - uses: actions/cache@v4
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Run build steps and generate coverage report
+        run: |
+          mvn verify javadoc:javadoc jacoco:report -Pcoverage -B -V
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          file: ./**/target/site/jacoco/jacoco.xml
+          name: codecov
+          fail_ci_if_error: false
