@@ -1,9 +1,10 @@
 /*
- * (C) 2022 GoodData Corporation.
+ * (C) 2025 GoodData Corporation.
  * This source code is licensed under the BSD-style license found in the
  * LICENSE.txt file in the root directory of this source tree.
  */
 package com.gooddata.http.client;
+
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 
@@ -22,8 +23,7 @@ public class GoodDataLogoutExceptionMatcher extends BaseMatcher<GoodDataLogoutEx
 
     @Override
     public boolean matches(Object o) {
-        if (o instanceof GoodDataLogoutException) {
-            final GoodDataLogoutException e = (GoodDataLogoutException) o;
+        if (o instanceof GoodDataLogoutException e) {
             return statusCode == e.getStatusCode() && (statusText == null || statusText.equals(e.getStatusText()));
         }
         return false;

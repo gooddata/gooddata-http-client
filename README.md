@@ -1,30 +1,20 @@
 # GoodData HTTP Client
 [![Build Status](https://github.com/gooddata/gooddata-http-client/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/gooddata/gooddata-http-client/actions/workflows/build.yml) [![Javadocs](http://javadoc.io/badge/com.gooddata/gooddata-http-client.svg)](http://javadoc.io/doc/com.gooddata/gooddata-http-client) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.gooddata/gooddata-http-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.gooddata/gooddata-http-client) [![Release](https://img.shields.io/github/v/release/gooddata/gooddata-http-client.svg)](https://search.maven.org/artifact/com.gooddata/gooddata-http-client)
 
-GoodData HTTP Client is an extension of [Apache HTTP Client 5.x](https://hc.apache.org/httpcomponents-client-5.3.x/index.html).
+GoodData HTTP Client is an extension of [Apache HTTP Client 5](https://hc.apache.org/httpcomponents-client-5.x/index.html).
 This specialized Java client transparently handles [GoodData authentication](https://help.gooddata.com/display/doc/API+Reference#/reference/authentication/log-in)
 so you can focus on writing logic on top of [GoodData API](https://help.gooddata.com/display/doc/API+Reference).
 
-## ⚠️ Version 2.0+ Breaking Changes
-
-**Version 2.0.0** introduces a major update migrating from Apache HttpClient 4.x to 5.x. See the [Migration Guide](#migration-guide) below for upgrade instructions.
-
-## Requirements
-
-- **Java 17+** (updated from Java 8)
-- **Apache HttpClient 5.5+** (migrated from 4.x)
-- **Maven 3.6+** (for building)
+**Version 3.0+ Migration Notice**: Starting from version 3.0.0, this library has been migrated from Apache HttpClient 4 to HttpClient 5.
+This is a **breaking change** that requires code updates. See [Migration Guide](#migration) for details.
 
 ## Design
 
-`com.gooddata.http.client.GoodDataHttpClient` is a thread-safe HTTP client that wraps Apache HttpClient 5.x and provides transparent GoodData authentication handling. The client automatically manages SST (Super Secure Token) and TT (Temporary Token) lifecycle, including:
-
-- Automatic token refresh on expiration
-- Retry logic for authentication failures  
-- Thread-safe token management
-- Support for all HTTP methods (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS)
-
-Business logic should use the `GoodDataHttpClient` class directly, which handles all authentication concerns internally.
+```com.gooddata.http.client.GoodDataHttpClient``` central class implements [org.apache.hc.client5.http.classic.HttpClient interface](https://hc.apache.org/httpcomponents-client-5.x/current/httpclient5/apidocs/org/apache/hc/client5/http/classic/HttpClient.html)
+It allows seamless switch for existing code base currently using ```org.apache.hc.client5.http.classic.HttpClient```. Business logic encapsulating
+access to [GoodData API](https://help.gooddata.com/display/doc/API+Reference) should use ```org.apache.hc.client5.http.classic.HttpClient``` interface
+and keep ```com.gooddata.http.client.GoodDataHttpClient``` inside a factory class. ```com.gooddata.http.client.GoodDataHttpClient``` uses underlying ```org.apache.hc.client5.http.classic.HttpClient```.  A HTTP client
+instance can be passed via the constructor.
 
 ## Usage
 
@@ -45,26 +35,25 @@ If your project is managed by Maven you can add GoodData HTTP client as a new de
 
 ### <a name="credentials"/>Authentication using credentials</a>
 
-```java
+```Java
 import com.gooddata.http.client.*;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
+import java.io.IOException;
+import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 
 HttpHost hostGoodData = new HttpHost("https", "secure.gooddata.com", 443);
 
-// Create login strategy, which will obtain SST via credentials
+// create login strategy, which will obtain SST via credentials
 SSTRetrievalStrategy sstStrategy = new LoginSSTRetrievalStrategy(login, password);
 
-// Create GoodData HTTP client
-GoodDataHttpClient client = new GoodDataHttpClient(
-    HttpClients.createDefault(), 
-    hostGoodData, 
-    sstStrategy
-);
+HttpClient client = new GoodDataHttpClient(HttpClientBuilder.create().build(), hostGoodData, sstStrategy);
 
-// Use HTTP client with transparent GoodData authentication
+// use HTTP client with transparent GoodData authentication
 HttpGet getProject = new HttpGet("/gdc/projects");
 getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
 ClassicHttpResponse getProjectResponse = client.execute(hostGoodData, getProject);
@@ -74,26 +63,29 @@ System.out.println(EntityUtils.toString(getProjectResponse.getEntity()));
 
 ### <a name="sst"/>Authentication using super-secure token (SST)</a>
 
-```java
+```Java
 import com.gooddata.http.client.*;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
+import java.io.IOException;
+import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+
+// create HTTP client
+HttpClient httpClient = HttpClientBuilder.create().build();
 
 HttpHost hostGoodData = new HttpHost("https", "secure.gooddata.com", 443);
 
-// Create login strategy (you must somehow obtain SST)
+// create login strategy (you must somehow obtain SST)
 SSTRetrievalStrategy sstStrategy = new SimpleSSTRetrievalStrategy("my super-secure token");
 
-// Create GoodData HTTP client
-GoodDataHttpClient client = new GoodDataHttpClient(
-    HttpClients.createDefault(), 
-    hostGoodData, 
-    sstStrategy
-);
+// wrap your HTTP client into GoodData HTTP client
+HttpClient client = new GoodDataHttpClient(httpClient, hostGoodData, sstStrategy);
 
-// Use GoodData HTTP client
+// use GoodData HTTP client
 HttpGet getProject = new HttpGet("/gdc/projects");
 getProject.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
 ClassicHttpResponse getProjectResponse = client.execute(hostGoodData, getProject);
@@ -101,133 +93,70 @@ ClassicHttpResponse getProjectResponse = client.execute(hostGoodData, getProject
 System.out.println(EntityUtils.toString(getProjectResponse.getEntity()));
 ```
 
-## Migration Guide
+## <a name="migration"/>Migration from HttpClient 4 to HttpClient 5
 
-### Migrating from 1.x to 2.0+ (Apache HttpClient 4.x to 5.x)
+**Version 3.0.0** introduces breaking changes due to the migration from Apache HttpClient 4 to HttpClient 5.
 
-Version 2.0.0 introduces breaking changes due to the Apache HttpClient 5.x migration. Follow these steps to upgrade:
+### Key Changes
 
-#### 1. Update Dependencies
+#### Package Structure
+- **HttpClient 4**: `org.apache.http.*`
+- **HttpClient 5**: `org.apache.hc.client5.http.*` and `org.apache.hc.core5.http.*`
 
-**Maven:**
+#### Interface Changes
+- `HttpClient` → `org.apache.hc.client5.http.classic.HttpClient`
+- `HttpResponse` → `org.apache.hc.core5.http.ClassicHttpResponse`
+- `HttpRequest` → `org.apache.hc.core5.http.ClassicHttpRequest`
+
+#### HttpHost Constructor
+```java
+// HttpClient 4
+HttpHost host = new HttpHost("hostname", 443, "https");
+
+// HttpClient 5
+HttpHost host = new HttpHost("https", "hostname", 443);
+```
+
+#### Entity Creation
+```java
+// HttpClient 4
+BasicHttpEntity entity = new BasicHttpEntity();
+entity.setContent(new ByteArrayInputStream(content));
+
+// HttpClient 5
+StringEntity entity = new StringEntity(content, ContentType.TEXT_PLAIN);
+```
+
+#### Response Status
+```java
+// HttpClient 4
+int status = response.getStatusLine().getStatusCode();
+
+// HttpClient 5
+int status = response.getCode();
+```
+
+### Required Dependencies
+
+Update your `pom.xml`:
+
 ```xml
 <dependency>
-  <groupId>com.gooddata</groupId>
-  <artifactId>gooddata-http-client</artifactId>
-  <version>2.0.0</version> <!-- Updated from 1.x -->
+  <groupId>org.apache.httpcomponents.client5</groupId>
+  <artifactId>httpclient5</artifactId>
+  <version>5.5.1</version>
+</dependency>
+<dependency>
+  <groupId>org.apache.httpcomponents.core5</groupId>
+  <artifactId>httpcore5</artifactId>
+  <version>5.3.6</version>
 </dependency>
 ```
 
-#### 2. Update Java Version
+### Compatibility
 
-Ensure your project uses **Java 17 or higher**:
-```xml
-<maven.compiler.source>17</maven.compiler.source>
-<maven.compiler.target>17</maven.compiler.target>
-```
-
-#### 3. Update Imports
-
-Replace Apache HttpClient 4.x imports with 5.x equivalents:
-
-**Before (1.x):**
-```java
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
-```
-
-**After (2.0+):**
-```java
-import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.ClassicHttpResponse;
-import org.apache.hc.client5.http.classic.HttpClient;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
-```
-
-#### 4. Update HttpHost Construction
-
-**Before (1.x):**
-```java
-HttpHost host = new HttpHost("secure.gooddata.com", 443, "https");
-```
-
-**After (2.0+):**
-```java
-HttpHost host = new HttpHost("https", "secure.gooddata.com", 443);
-// Note: scheme is now the first parameter
-```
-
-#### 5. Update Response Handling
-
-**Before (1.x):**
-```java
-HttpResponse response = client.execute(host, request);
-```
-
-**After (2.0+):**
-```java
-ClassicHttpResponse response = client.execute(host, request);
-```
-
-#### 6. Update HttpClient Creation
-
-**Before (1.x):**
-```java
-HttpClient httpClient = HttpClientBuilder.create().build();
-```
-
-**After (2.0+):**
-```java
-HttpClient httpClient = HttpClients.createDefault();
-// Or with custom configuration:
-HttpClient httpClient = HttpClients.custom()
-    .setDefaultRequestConfig(RequestConfig.custom()
-        .setConnectionRequestTimeout(Timeout.ofSeconds(30))
-        .build())
-    .build();
-```
-
-#### 7. Key Behavioral Changes
-
-- **Thread Safety**: All requests now use write locks for consistency. This may reduce throughput under high concurrency but ensures reliable token management.
-- **Entity Handling**: Non-repeatable request entities are automatically buffered for retry scenarios.
-- **Error Handling**: More specific exceptions for authentication failures.
-- **HTTP Methods**: Full support for POST, PUT, PATCH in addition to GET and DELETE.
-
-#### 8. Testing Your Migration
-
-After updating your code:
-
-1. **Compile**: Ensure no compilation errors
-2. **Test**: Run your existing test suite
-3. **Integration Test**: Test against GoodData API with real credentials
-4. **Monitor**: Watch for authentication issues or performance changes
-
-#### Common Migration Issues
-
-**Issue: NoClassDefFoundError**
-- **Cause**: Conflicting HttpClient versions in classpath
-- **Fix**: Use `mvn dependency:tree` to identify conflicts and exclude old HttpClient 4.x dependencies
-
-**Issue: Method not found errors**
-- **Cause**: Using old HttpClient 4.x APIs
-- **Fix**: Update all imports and method calls to HttpClient 5.x equivalents
-
-**Issue: Authentication failures**
-- **Cause**: Token handling differences
-- **Fix**: Ensure SST/TT tokens are being passed correctly; check logs for authentication errors
-
-### Need Help?
-
-- Review the [complete API documentation](http://javadoc.io/doc/com.gooddata/gooddata-http-client)
-- Check [Apache HttpClient 5.x migration guide](https://hc.apache.org/httpcomponents-client-5.3.x/migration-guide/index.html)
-- Report issues on [GitHub](https://github.com/gooddata/gooddata-http-client/issues)
+- **Minimum Java Version**: Java 11+
+- **HttpClient 4 compatibility**: Not maintained. Use version 1.x for HttpClient 4 compatibility.
 
 ## Build
 
